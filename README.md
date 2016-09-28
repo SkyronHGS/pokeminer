@@ -100,6 +100,30 @@ Gyms statistics server is in a separate file, because it's intended to be shared
 
 [![](http://i.imgur.com/1098HkEm.png)](http://i.imgur.com/1098HkE.png)
 
+### If you want to use Discord Notification
+
+![Discord Message](static/discord.png)
+
+# Notification list commands
+You can now write ``!add 16`` or any Pokénumber to add that, ``!del 16`` to delete them and ``!read`` to read the notfication lList
+
+```javascript
+npm install discord.js
+npm install request
+npm install node-geocoder
+npm install fs
+```
+
+Running the Bot Application
+```javascript
+node data.js
+```
+
+Changing the language in data.js line ``113,130,144,148,156,170,178,186``
+```javascript
+var message = '**' + pokemon.name + '** (' + pokemon.pokemon_id + ') gesichtet ! Verschwindet in **' + min_diff + '** minuten \n'+streetName+'';  
+```
+
 ## License
 
 See [LICENSE](LICENSE).
