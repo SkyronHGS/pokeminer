@@ -68,14 +68,225 @@ def get_gains():
     lat_gain = dis_h.destination(point=start, bearing=0).latitude
     return abs(start.latitude - lat_gain), abs(start.longitude - lon_gain)
 
+def split_points_into_grid(pointsIn):
+    points = []
+    lat_gain, lng_gain = get_gains()
+    numberOfPointsAWorkerCanCover = math.floor(config.FREQUENCY_OF_POINT_RESCAN_SECS*(1-(.01 * config.ERROR_PERCENTAGE))/config.SCAN_DELAY)
 
-def get_points_per_worker():
+    startLat = config.MAP_START[0]
+    startLng = config.MAP_START[1]
+
+    endLat = config.MAP_START[0]
+    endLng = config.MAP_START[1]
+
+    startBiggerThanEndLat = config.MAP_START[0] > config.MAP_END[0]
+    startBiggerThanEndLng = config.MAP_START[1] > config.MAP_END[1]
+
+    if startBiggerThanEndLat:
+	lat_gain = -1 * lat_gain
+
+    if startBiggerThanEndLng:
+	lng_gain = -1 * lng_gain
+
+    #totalAddedLat = 0
+    #totalAddedLng = 0
+
+    pointsInThisSection = 0
+
+    outsideLat = False
+    outsideLng = False
+
+    print "map start lat: %f" % startLat
+    print "map start lng: %f" % startLng
+
+    print "map end lat: %f" % config.MAP_END[0]
+    print "map end lng: %f" % config.MAP_END[1]
+
+#    count = 0
+
+	# 0 = increase both
+	# 1 = increase lat only
+	# 2 = increase lng only
+	# 3 = done
+    currentSearchStatus = 0
+
+    while currentSearchStatus < 3 or (outsideLat and outsideLng):
+
+	print "Increasing grid size"
+#	count = count + 1
+#	if count == 5:
+#	    break
+
+	pointsInThisSection = 0
+
+	if (startBiggerThanEndLat and endLat < config.MAP_END[0]) or (startBiggerThanEndLat == False and endLat > config.MAP_END[0]):
+		outsideLat = True
+		print "outside lat"
+	
+	if (startBiggerThanEndLng and endLng < config.MAP_END[1]) or (startBiggerThanEndLng == False and endLng > config.MAP_END[1]):
+                outsideLng = True
+		print "outside lng"
+	
+	print "current start lat: %f" % startLat
+	print "current start lng: %f" % startLng
+	print "current end lat: %f" % endLat
+	print "current end lng: %f" % endLng
+
+	if outsideLat == False and (currentSearchStatus == 0 or currentSearchStatus == 1):
+       	    endLat = endLat + lat_gain
+
+	if outsideLng == False and (currentSearchStatus == 0 or currentSearchStatus == 2):
+	    endLng = endLng + lng_gain
+
+	print "adjusted start lat: %f" % startLat
+        print "adjusted start lng: %f" % startLng
+        print "adjusted end lat: %f" % endLat
+        print "adjusted end lng: %f" % endLng
+
+	tempStartLat = startLat
+	tempStartLng = startLng
+	tempEndLat = endLat
+	tempEndLng = endLng
+	if tempStartLat > tempEndLat:
+	    temp = tempStartLat
+            tempStartLat = tempEndLat
+	    tempEndLat = temp
+	if tempStartLng > tempEndLng:
+	    temp = tempStartLng
+            tempStartLng = tempEndLng
+            tempEndLng = temp
+
+	for point in pointsIn:
+            if point[0] < tempEndLat and point[0] >= tempStartLat and point[1] < tempEndLng and point[1] >= tempStartLng:
+	        pointsInThisSection = pointsInThisSection + 1
+
+        print "Points in this section: %d"  % pointsInThisSection
+
+	if pointsInThisSection >= numberOfPointsAWorkerCanCover:
+                currentSearchStatus = currentSearchStatus + 1
+		if currentSearchStatus == 1:
+			endLat = endLat - lat_gain   
+    			endLng = endLng - lng_gain
+		elif currentSearchStatus == 2:
+			endLat = endLat - lat_gain
+		elif currentSearchStatus == 3:
+			endLng = endLng - lng_gain
+
+    pointsInThisSection = 0
+
+#    endLat = endLat - lat_gain   
+#    endLng = endLng - lng_gain
+
+    tempStartLat = startLat
+    tempStartLng = startLng
+    tempEndLat = endLat
+    tempEndLng = endLng
+    if tempStartLat > tempEndLat:
+        temp = tempStartLat
+        tempStartLat = tempEndLat
+        tempEndLat = temp
+    if tempStartLng > tempEndLng:
+        temp = tempStartLng
+        tempStartLng = tempEndLng
+        tempEndLng = temp
+
+
+    print endLat
+    print endLng
+
+    for point in pointsIn:
+	    #print ""
+	    #print point[0]
+	    #print point[1]
+	    #print tempStartLat
+	    #print tempStartLng
+	    #print tempEndLat
+	    #print tempEndLng
+	    #print ""
+            #pointsInThisSection = 100
+	    #break
+    
+        if point[0] < tempEndLat and point[0] >= tempStartLat and point[1] < tempEndLng and point[1] >= tempStartLng:
+            pointsInThisSection = pointsInThisSection + 1
+	
+    print "Points in this section: %d"  % pointsInThisSection
+
+    gridSizeLat = endLat - startLat
+    gridSizeLng = endLng - startLng
+
+    placedPoints = 0
+
+    tempLat = config.MAP_START[0]
+
+#	matched = False
+
+    sections = 0
+
+    while (tempLat < config.MAP_END[0] and startBiggerThanEndLat == False) or (tempLat > config.MAP_END[0] and startBiggerThanEndLat == True):
+        tempStartLat = tempLat
+        tempEndLat = tempStartLat + gridSizeLat
+        if tempStartLat > tempEndLat:
+       	    temp = tempStartLat
+            tempStartLat = tempEndLat
+            tempEndLat = temp
+
+	tempLng = config.MAP_START[1]
+	while (tempLng < config.MAP_END[1] and startBiggerThanEndLng == False) or (tempLng > config.MAP_END[1] and startBiggerThanEndLng == True):
+
+ 	#for tempLng in range(config.MAP_START[1], config.MAP_END[1], gridSizeLng):
+	    tempStartLng = tempLng
+            tempEndLng = tempStartLng + gridSizeLng
+    	    if tempStartLng > tempEndLng:
+                temp = tempStartLng
+                tempStartLng = tempEndLng
+                tempEndLng = temp
+	    # see if lat matched
+	    sections = sections + 1
+	    worker = []
+	    for point in pointsIn:
+	        matched = False
+		if (point[0] < tempEndLat and point[0] >= tempStartLat and startBiggerThanEndLng) or (point[0] <= tempEndLat and point[0] > tempStartLat and startBiggerThanEndLng == False):
+	        #if point[0] < tempEndLat and point[0] >= tempStartLat and point[1] < tempEndLng and point[1] >= tempStartLng:
+		    if (point[1] < tempEndLng and point[1] >= tempStartLng and startBiggerThanEndLng == False) or (point[1] <= tempEndLng and point[1] > tempStartLng and startBiggerThanEndLng == True): 
+		        #matched = True
+		        placedPoints = placedPoints + 1
+			worker.append(point)
+		#        break
+		#if matched == False:
+		#    print "Unmatched point: %f, %f" % (point[0], point[1])
+	    points.append(worker)
+	    tempLng = tempLng + gridSizeLng
+
+	#if matched:
+	#    break
+	tempLat = tempLat + gridSizeLat
+#    print "Placed points: %d in %d sectionss" % (placedPoints, sections)
+#    print "returning: "
+#    print points
+    
+    pointsToPlace = len(pointsIn)
+    if pointsToPlace != placedPoints:
+	print "WARNING: ONLY PLACED %d of %d points" % (placedPoints, pointsToPlace)
+
+    return points
+
+		#print ""
+                #print point[0]
+                #print point[1]
+            #print tempStartLat
+            #print tempStartLng
+            #print tempEndLat
+            #print tempEndLng
+            #print ""
+
+
+def get_points():
     """Returns all points that should be visited for whole grid"""
-    total_workers = config.GRID[0] * config.GRID[1]
+    #total_workers = config.GRID[0] * config.GRID[1]
 
     lat_gain, lon_gain = get_gains()
 
-    points = [[] for _ in range(total_workers)]
+    points = []#[[] for _ in range(total_workers)]
     total_rows = math.ceil(
         abs(config.MAP_START[0] - config.MAP_END[0]) / lat_gain
     )
@@ -85,24 +296,45 @@ def get_points_per_worker():
     for map_row, lat in enumerate(
         float_range(config.MAP_START[0], config.MAP_END[0], lat_gain)
     ):
-        row_start_lon = config.MAP_START[1]
         odd = map_row % 2 != 0
-        if odd:
-            row_start_lon -= 0.5 * lon_gain
+        
+	start = config.MAP_START[1]
+	stop = config.MAP_END[1]
+
+	if odd:
+	    temp = start
+	    start = stop
+	    stop = temp
+	    start -= 0.5 * lon_gain
+
+#	if map_row != 0:
+#		lon_gain = long_gain * -1
+
+#	if odd:	    
+ #           row_start_lon = config.MAP_END[1]
+#	    row_start_lon -= 0.5 * lon_gain
+#	else:
+#	    row_start_lon = config.MAP_START[1]
+
         for map_col, lon in enumerate(
-            float_range(row_start_lon, config.MAP_END[1], lon_gain)
-        ):
+#	    if odd:
+ #           	float_range(row_start_lon, config.MAP_END[1], lon_gain)
+  #          else:
+#		float_range(config.MAP_END[1], row_start_lon, lon_gain)
+	    float_range(start,stop,lon_gain)
+	):
             # Figure out which worker this should go to
-            grid_row = int(map_row / float(total_rows) * config.GRID[0])
-            grid_col = int(map_col / float(total_columns) * config.GRID[1])
-            if map_col >= total_columns:  # should happen only once per 2 rows
-                grid_col -= 1
-            worker_no = grid_row * config.GRID[1] + grid_col
-            points[worker_no].append((lat, lon))
-    points = [
-        sort_points_for_worker(p, i)
-        for i, p in enumerate(points)
-    ]
+            #grid_row = int(map_row / float(total_rows) * config.GRID[0])
+            #grid_col = int(map_col / float(total_columns) * config.GRID[1])
+            #if map_col >= total_columns:  # should happen only once per 2 rows
+            #    grid_col -= 1
+            #worker_no = grid_row * config.GRID[1] + grid_col
+            #points[worker_no].append((lat, lon))
+	    points.append((lat,lon))
+    #points = [
+    #    sort_points_for_worker(p, i)
+    #    for i, p in enumerate(points)
+    #]
     return points
 
 
@@ -131,3 +363,72 @@ def get_worker_account(worker_no):
             return config.ACCOUNTS[account_no]
         account_no += 1
     raise ValueError('Workers incompatible with accounts')
+
+def eval():
+
+    print ""
+    points = get_points()
+    print "Number, Latitude, Longitude"
+    for i, p in enumerate(points):
+        print "%d, %f, %f" % (i, p[0], p[1])    
+
+    total_points = len(points)
+
+    print "Scanning %d points" % total_points
+
+    distances = []
+    for i, p in enumerate(points):
+        if i > 0:
+            distanceFromPrevToThis = distance.distance(points[i-1], points[i]).kilometers
+            distances.append(distanceFromPrevToThis)
+
+    sum = 0
+    for dist in distances:
+        sum += dist
+
+    averageDist = sum / len(distances)
+    averageSpeed = averageDist/config.SCAN_DELAY # km / s            
+    averageSpeedMPH = averageSpeed * 2236.9362920544
+
+    print "Average speed: %f mph" % averageSpeedMPH
+    distanceFromLastToFirst = distance.distance(points[0], points[total_points-1]).kilometers
+    speedFromLastToFirst = (distanceFromLastToFirst/config.SCAN_DELAY)*2236.9362920544
+
+    print "Distance from last to first: %f km" % distanceFromLastToFirst
+    print "Speed from last to first: %f mph" % speedFromLastToFirst
+
+    numberOfPointsAWorkerCanCover = math.floor(config.FREQUENCY_OF_POINT_RESCAN_SECS*(1-(.01 * config.ERROR_PERCENTAGE))/config.SCAN_DELAY)
+
+    print "Each worker can cover %d points, ensuring each point is scanned once every %d seconds assuming a failure rate of: %d" % (numberOfPointsAWorkerCanCover, config.FREQUENCY_OF_POINT_RESCAN_SECS, config.ERROR_PERCENTAGE)
+
+    numActiveWorkers = math.ceil(total_points / numberOfPointsAWorkerCanCover)
+
+    print "There should be %d active workers" % numActiveWorkers
+
+    secondsNeededToSleepFromLastToFirst = distanceFromLastToFirst/averageSpeed
+
+    print "Workers need %f seconds to travel from the last point to the first" % secondsNeededToSleepFromLastToFirst
+
+    numWorkersThatWouldStartWhileWaitingThisLong = math.floor(secondsNeededToSleepFromLastToFirst / config.FREQUENCY_OF_POINT_RESCAN_SECS)
+
+    totalRequiredWorkers = numWorkersThatWouldStartWhileWaitingThisLong + numActiveWorkers
+
+    print "This requires %d additional workers, for a total of %d workers" % (numWorkersThatWouldStartWhileWaitingThisLong, totalRequiredWorkers)
+
+    sections = split_points_into_grid(points)
+
+   # for i, section in enumerate(sections):
+        #print "Section %d: " % i
+	#print "Name, Latitude, Longitude"
+       # for j, point in enumerate(section): 
+#            print "Point %d, %f, %f" % (j, point[0], point[1])
+
+    workersRequired = len(sections)
+    workersWeHave = len(config.ACCOUNTS)
+
+    print "Currently have %d workers and need %d workers" % (workersWeHave, workersRequired)
+
+    if workersRequired > workersWeHave:
+       	print "MORE WORKERS REQUIRED"
+
+    print ""
