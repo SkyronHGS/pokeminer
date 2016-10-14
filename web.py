@@ -93,7 +93,7 @@ def get_pokeDiscord():
     session.close()
 
     for pokemon in pokemons:
-        name = pokemon_names[str(pokemon.pokemon_id)]
+        name = POKEMON_NAMES[pokemon.pokemon_id]
         datestr = datetime.fromtimestamp(pokemon.expire_timestamp)
         dateoutput = datestr.strftime("%H:%M:%S")
 
