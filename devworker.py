@@ -26,11 +26,12 @@ REQUIRED_SETTINGS = (
     'CYCLES_PER_WORKER',
     'MAP_START',
     'MAP_END',
-    'GRID',
     'ACCOUNTS',
     'SCAN_RADIUS',
     'SCAN_DELAY',
     'DISABLE_WORKERS',
+    'FREQUENCY_OF_POINT_RESCAN_SECS',
+    'ERROR_PERCENTAGE',
 )
 for setting_name in REQUIRED_SETTINGS:
     if not hasattr(config, setting_name):
