@@ -1,18 +1,23 @@
 # coding: utf-8
 from datetime import datetime
 
-DB_ENGINE = 'sqlite:///db.sqlite'
-ENCRYPT_PATH = './libencrypt.so'
+DB_ENGINE = 'mysql+mysqldb://root:root@localhost/pokemon'
+ENCRYPT_PATH = './encrypt.so'
+#DB_ENGINE = 'sqlite:///db.sqlite'
+#ENCRYPT_PATH = './libencrypt.so'
 
 AREA_NAME = u'Wrocław'
 LANGUAGE = 'EN'  # ISO 639-1 codes EN, DE, FR, and ZH currently supported.
 MAP_START = (12.3456, 34.5678)
 MAP_END = (13.4567, 35.6789)
-GRID = (2, 2)  # row, column
+#GRID = (2, 2)  # row, column
 DISABLE_WORKERS = []
 CYCLES_PER_WORKER = 3
 SCAN_DELAY = 10  # seconds
 PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
+
+FREQUENCY_OF_POINT_RESCAN_SECS = 300
+ERROR_PERCENTAGE = 30
 
 SCAN_RADIUS = 70  # metres
 
