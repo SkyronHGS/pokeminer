@@ -17,7 +17,6 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # Check whether config has all necessary attributes
 REQUIRED_SETTINGS = (
-    'GRID',
     'TRASH_IDS',
     'AREA_NAME',
     'REPORT_SINCE',

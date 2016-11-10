@@ -1,6 +1,7 @@
 from datetime import datetime
 import enum
 import time
+import logging 
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
@@ -8,6 +9,21 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql.expression import func   
+
+def configure_logger(filename='db.log'):
+    logging.basicConfig(
+        filename=filename,
+        format=(
+            '[%(asctime)s][%(threadName)10s][%(levelname)8s][L%(lineno)4d] '
+            '%(message)s'
+        ),
+        style='%',
+        level=logging.INFO,
+    )
+
+logger = logging.getLogger()
+
+
 
 try:
     import config
@@ -51,6 +67,7 @@ class SightingCache(object):
             normalize_timestamp(sighting['expire_timestamp']),
             sighting['lat'],
             sighting['lon'],
+            sighting['time_logged'],
         )
 
     def add(self, sighting):
@@ -117,7 +134,7 @@ class Sighting(Base):
     normalized_timestamp = Column(Integer)
     lat = Column(String(20), index=True)
     lon = Column(String(20), index=True)
-
+    time_logged = Column(Integer)
 
 class Fort(Base):
     __tablename__ = 'forts'
@@ -177,17 +194,28 @@ def get_since_query_part(where=True):
 
 def add_sighting(session, pokemon):
     # Check if there isn't the same entry already
+    logger.info("%d", pokemon['time_logged'])
     if pokemon in SIGHTING_CACHE:
+    	logger.info("pokemon was in sighting cache")
         return
     existing = session.query(Sighting) \
         .filter(Sighting.pokemon_id == pokemon['pokemon_id']) \
         .filter(Sighting.spawn_id == pokemon['spawn_id']) \
-        .filter(Sighting.expire_timestamp > pokemon['expire_timestamp'] - 10) \
-        .filter(Sighting.expire_timestamp < pokemon['expire_timestamp'] + 10) \
+        .filter(Sighting.time_logged+(30*60) > pokemon['time_logged']) \
         .filter(Sighting.lat == pokemon['lat']) \
         .filter(Sighting.lon == pokemon['lon']) \
         .first()
     if existing:
+	logger.info("pokemon was existing")
+    	logger.info("input:")
+    	logger.info(pokemon)
+	logger.info("matched:")
+  	logger.info(existing.id)
+  	logger.info(existing.pokemon_id)
+  	logger.info(existing.spawn_id)
+  	logger.info(existing.lat)
+  	logger.info(existing.lon)
+  	logger.info(existing.time_logged)
         return
     obj = Sighting(
         pokemon_id=pokemon['pokemon_id'],
@@ -197,7 +225,9 @@ def add_sighting(session, pokemon):
         normalized_timestamp=normalize_timestamp(pokemon['expire_timestamp']),
         lat=pokemon['lat'],
         lon=pokemon['lon'],
+	time_logged=pokemon['time_logged'],
     )
+    logger.info("added pokemon to db")
     session.add(obj)
     SIGHTING_CACHE.add(pokemon)
 
@@ -247,8 +277,9 @@ def add_fort_sighting(session, raw_fort):
 
 
 def get_sightings(session):
+    logger.info("gettings sightings")
     return session.query(Sighting) \
-        .filter(Sighting.expire_timestamp > time.time()) \
+        .filter(Sighting.time_logged+(15*60) > time.time()) \
         .all()
 
 
@@ -494,3 +525,8 @@ def get_all_spawn_coords(session, pokemon_id=None):
         points = points.filter(Sighting.expire_timestamp > get_since())
     points = points.group_by(Sighting.lat, Sighting.lon)
     return points.all()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    configure_logger(filename=None)

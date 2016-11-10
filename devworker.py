@@ -28,10 +28,8 @@ REQUIRED_SETTINGS = (
     'MAP_END',
     'ACCOUNTS',
     'SCAN_RADIUS',
-    'SCAN_DELAY',
+    'MIN_SCAN_DELAY',
     'DISABLE_WORKERS',
-    'FREQUENCY_OF_POINT_RESCAN_SECS',
-    'ERROR_PERCENTAGE',
 )
 for setting_name in REQUIRED_SETTINGS:
     if not hasattr(config, setting_name):
@@ -85,8 +83,8 @@ class Slave(threading.Thread):
         self.running = True
         center = self.points[0]
         self.api = PGoApi()
-        self.api.activate_signature(config.ENCRYPT_PATH)
-        self.api.set_position(center[0], center[1], 100)  # lat, lon, alt
+        #self.api.activate_signature(config.ENCRYPT_PATH)
+        self.api.set_position(center[0], center[1], 10)  # lat, lon, alt
         if hasattr(config, 'PROXIES') and config.PROXIES:
             self.api.set_proxy(config.PROXIES)
 
@@ -170,18 +168,45 @@ class Slave(threading.Thread):
         self.error_code = 'RESTART'
         self.restart()
 
+    def manageCaptcha(self):
+	response_dict = self.api.check_challenge()
+	logger.info(response_dict)
+	logger.info(response_dict['responses']['CHECK_CHALLENGE']['challenge_url'])
+
     def main(self):
         """Heart of the worker - goes over each point and reports sightings"""
         session = db.Session()
         self.seen_per_cycle = 0
         self.step = 0
+	speed = -1
+
+	self.manageCaptcha()
+
+	secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
+        time.sleep(secondsBetween)
+
         for i, point in enumerate(self.points):
             if not self.running:
                 return
-            logger.info('Visiting point %d (%s %s)', i, point[0], point[1])
+	    secondsBetween = 0
+	    point1 = self.points[i]
+	    point2 = self.points[2]
+	    if (self.step != 0):
+		secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
+                time.sleep(secondsBetween)
+		speed = utils.get_speed_kmh(point1, point2, secondsBetween)
+	    	while (speed > config.MAX_SPEED_KMH):
+		    moreSleep = random.uniform(.5,2.5)
+		    time.sleep(moreSleep)
+		    secondsBetween += moreSleep
+		    speed = utils.get_speed_kmh(point1, point2, secondsBetween)
+		
+            logger.info('Visiting point %d (%s %s) step 1', i, point[0], point[1])
             self.api.set_position(point[0], point[1], 0)
             cell_ids = pgoapi_utils.get_cell_ids(point[0], point[1])
-            self.api.set_position(point[0], point[1], 100)
+            logger.info('Visiting point %d (%s %s) step 2', i, point[0], point[1])
+            #self.api.set_position(point[0], point[1], 10)
+            #logger.info('Visited point %d (%s %s) step 3', i, point[0], point[1])
             response_dict = self.api.get_map_objects(
                 latitude=pgoapi_utils.f2i(point[0]),
                 longitude=pgoapi_utils.f2i(point[1]),
@@ -201,19 +226,27 @@ class Slave(threading.Thread):
             pokemons = []
             forts = []
             if map_objects.get('status') == 1:
+		logger.info("Status was 1")
+		logger.info("number of map objects returned: %d",len(map_objects))
+#		logger.info(map_objects)
                 for map_cell in map_objects['map_cells']:
                     for pokemon in map_cell.get('wild_pokemons', []):
+ 			logger.info(pokemon)
                         # Care only about 15 min spawns
                         # 30 and 45 min ones (negative) will be just put after
                         # time_till_hidden is below 15 min
                         # As of 2016.08.14 we don't know what values over
                         # 60 minutes are, so ignore them too
-                        invalid_time = (
-                            pokemon['time_till_hidden_ms'] < 0 or
-                            pokemon['time_till_hidden_ms'] > 900000
-                        )
+                        invalid_time = False#(
+                            #pokemon['time_till_hidden_ms'] < 0 or
+    #                        pokemon['time_till_hidden_ms'] > 900000
+     #                   )
+			pokemon['time_logged'] = time.time()
+			logger.info("found pokemon. time remaining: %d, %d", pokemon['time_till_hidden_ms'], pokemon['time_logged'])
                         if invalid_time:
+			    logger.error("pokemon had invalid time")
                             continue
+			logger.info("appending pokemon")
                         pokemons.append(
                             self.normalize_pokemon(
                                 pokemon, map_cell['current_timestamp_ms']
@@ -230,8 +263,8 @@ class Slave(threading.Thread):
                 self.seen_per_cycle += 1
                 self.total_seen += 1
             session.commit()
-            for raw_fort in forts:
-                db.add_fort_sighting(session, raw_fort)
+            #for raw_fort in forts:
+            #    db.add_fort_sighting(session, raw_fort)
             # Commit is not necessary here, it's done by add_fort_sighting
             logger.info(
                 'Point processed, %d Pokemons and %d forts seen!',
@@ -242,9 +275,6 @@ class Slave(threading.Thread):
             if self.error_code and self.seen_per_cycle:
                 self.error_code = None
             self.step += 1
-            time.sleep(
-                random.uniform(config.SCAN_DELAY, config.SCAN_DELAY + 2)
-            )
         session.close()
         if self.seen_per_cycle == 0:
             self.error_code = 'NO POKEMON'
@@ -259,6 +289,7 @@ class Slave(threading.Thread):
             'expire_timestamp': (now + raw['time_till_hidden_ms']) / 1000.0,
             'lat': raw['latitude'],
             'lon': raw['longitude'],
+            'time_logged': raw['time_logged'],
         }
 
     @staticmethod
@@ -354,12 +385,14 @@ def spawn_workers(workers, status_bar=True):
     workersWeHave = len(config.ACCOUNTS)
 
     if count > workersWeHave: 
-        print "MORE WORKERS REQUIRED"
+        print str(count-workersWeHave) + " MORE WORKERS REQUIRED"
 	sys.exit(1)    
 
     start_date = datetime.now()
     for worker_no in range(count):
-        start_worker(worker_no, sections[worker_no])
+	    print "starting worker: " + str(worker_no)
+	    start_worker(worker_no, sections[worker_no])
+	    time.sleep(1)
     lenghts = [len(p) for p in sections]
     points_stats = {
         'max': max(lenghts),
@@ -375,7 +408,7 @@ def spawn_workers(workers, status_bar=True):
     while True:
         now = time.time()
         # Clean cache
-        if now - last_cleaned_cache > (15 * 60):  # clean cache
+        if now - last_cleaned_cache > (30 * 60):  # clean cache
             db.SIGHTING_CACHE.clean_expired()
             last_cleaned_cache = now
         # Check up on workers
