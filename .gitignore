@@ -2,13 +2,13 @@
 .idea
 config.py
 db.sqlite
+config_bot.json
 *.log
 templates/footer.html
 *.so
 *.dll
 *.dylib
 node_modules/
-config_bot.json
 *.bk
 *.save
 pokecrypt-pgoapi/
