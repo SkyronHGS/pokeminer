@@ -188,9 +188,9 @@ class Slave(threading.Thread):
             if not self.running:
                 return
 	    secondsBetween = 0
-	    point1 = self.points[i]
-	    point2 = self.points[2]
 	    if (self.step != 0):
+       	        point1 = self.points[i]
+                point2 = self.points[i-1]
 		secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
                 time.sleep(secondsBetween)
 		speed = utils.get_speed_kmh(point1, point2, secondsBetween)
