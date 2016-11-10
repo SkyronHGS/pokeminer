@@ -8,4 +8,6 @@ templates/footer.html
 *.dll
 *.dylib
 node_modules/
-bot/config.json
+config_bot.json
+*.bk
+*.save
