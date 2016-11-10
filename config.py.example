@@ -16,9 +16,10 @@ CYCLES_PER_WORKER = 3
 SCAN_DELAY = 10  # seconds
 PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
 
-FREQUENCY_OF_POINT_RESCAN_SECS = 300
-ERROR_PERCENTAGE = 30
-
+MIN_SCAN_DELAY = 45  # seconds
+MAX_SPEED_KMH = 15
+FREQUENCY_OF_POINT_RESCAN_SECS = 600
+ERROR_PERCENTAGE = 10
 SCAN_RADIUS = 70  # metres
 
 ACCOUNTS = [
