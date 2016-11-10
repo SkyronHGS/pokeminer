@@ -71,7 +71,7 @@ def get_gains():
 def split_points_into_grid(pointsIn):
     points = []
     lat_gain, lng_gain = get_gains()
-    numberOfPointsAWorkerCanCover = math.floor(config.FREQUENCY_OF_POINT_RESCAN_SECS*(1-(.01 * config.ERROR_PERCENTAGE))/config.SCAN_DELAY)
+#    numberOfPointsAWorkerCanCover = math.floor(config.FREQUENCY_OF_POINT_RESCAN_SECS*(1-(.01 * config.ERROR_PERCENTAGE))/config.MIN_SCAN_DELAY)
 
     startLat = config.MAP_START[0]
     startLng = config.MAP_START[1]
@@ -110,7 +110,7 @@ def split_points_into_grid(pointsIn):
 	# 3 = done
     currentSearchStatus = 0
 
-    while currentSearchStatus < 3 or (outsideLat and outsideLng):
+    while currentSearchStatus < 3 and (not outsideLat and not outsideLng):
 
 	print "Increasing grid size"
 #	count = count + 1
@@ -120,6 +120,10 @@ def split_points_into_grid(pointsIn):
 	pointsInThisSection = 0
 
 	if (startBiggerThanEndLat and endLat < config.MAP_END[0]) or (startBiggerThanEndLat == False and endLat > config.MAP_END[0]):
+		if (startBiggerThanEndLat == False and endLat > config.MAP_END[0]):		
+			print "condition 2"
+		if (startBiggerThanEndLat and endLat < config.MAP_END[0]):
+			print "condition 1"
 		outsideLat = True
 		print "outside lat"
 	
@@ -156,13 +160,33 @@ def split_points_into_grid(pointsIn):
             tempStartLng = tempEndLng
             tempEndLng = temp
 
+	tempPoints = []
+
 	for point in pointsIn:
             if point[0] < tempEndLat and point[0] >= tempStartLat and point[1] < tempEndLng and point[1] >= tempStartLng:
 	        pointsInThisSection = pointsInThisSection + 1
+		tempPoints.append(point)		
 
         print "Points in this section: %d"  % pointsInThisSection
 
-	if pointsInThisSection >= numberOfPointsAWorkerCanCover:
+	maxAllowedTime = config.FREQUENCY_OF_POINT_RESCAN_SECS*(1-(.01 * config.ERROR_PERCENTAGE))
+
+	timeTakenToProcess = 0
+	
+	for i in range(0,len(tempPoints)-1):
+		currentTimeBetweenPoints = config.MIN_SCAN_DELAY+2
+		point1 = tempPoints[i]
+		point2 = tempPoints[i+1]
+		speed = get_speed_kmh(point1, point2, currentTimeBetweenPoints)
+		while(config.MAX_SPEED_KMH < speed):
+			currentTimeBetweenPoints = currentTimeBetweenPoints + 1
+			speed = get_speed_kmh(point1, point2, currentTimeBetweenPoints)
+		timeTakenToProcess = timeTakenToProcess + currentTimeBetweenPoints
+		print(currentTimeBetweenPoints)
+		print(speed)
+
+	#if pointsInThisSection >= numberOfPointsAWorkerCanCover:
+	if timeTakenToProcess >= maxAllowedTime:
                 currentSearchStatus = currentSearchStatus + 1
 		if currentSearchStatus == 1:
 			endLat = endLat - lat_gain   
@@ -251,6 +275,8 @@ def split_points_into_grid(pointsIn):
 		        #matched = True
 		        placedPoints = placedPoints + 1
 			worker.append(point)
+			#print point[0]
+			#print point[1]
 		#        break
 		#if matched == False:
 		#    print "Unmatched point: %f, %f" % (point[0], point[1])
@@ -268,16 +294,24 @@ def split_points_into_grid(pointsIn):
     if pointsToPlace != placedPoints:
 	print "WARNING: ONLY PLACED %d of %d points" % (placedPoints, pointsToPlace)
 
-    return points
+	
+    for point in points[0]:
+	print point[0]
+	print point[1]
 
-		#print ""
-                #print point[0]
-                #print point[1]
-            #print tempStartLat
-            #print tempStartLng
-            #print tempEndLat
-            #print tempEndLng
-            #print ""
+	#print ""
+        #print point[0]
+        #print point[1]
+        #print tempStartLat
+        #print tempStartLng
+        #print tempEndLat
+        #print tempEndLng
+        #print ""
+
+    print "points placed:"
+    print placedPoints
+
+    return points
 
 
 def get_points():
@@ -347,6 +381,11 @@ def get_distance(p1, p2):
     return math.sqrt(pow(p1[0] - p2[0], 2) + pow(p1[1] - p2[1], 2))
 
 
+def get_speed_kmh(point1, point2, secondsBetween):
+    distanceTraveled = distance.distance(point1, point2).kilometers
+    timeInHours = 1.0 * secondsBetween / 3600
+    return 1.0 * distanceTraveled / timeInHours
+
 def get_worker_account(worker_no):
     """Returns appropriate ACCOUNT entry for worker
 
@@ -387,17 +426,17 @@ def eval():
         sum += dist
 
     averageDist = sum / len(distances)
-    averageSpeed = averageDist/config.SCAN_DELAY # km / s            
+    averageSpeed = averageDist/config.MIN_SCAN_DELAY # km / s            
     averageSpeedMPH = averageSpeed * 2236.9362920544
 
     print "Average speed: %f mph" % averageSpeedMPH
     distanceFromLastToFirst = distance.distance(points[0], points[total_points-1]).kilometers
-    speedFromLastToFirst = (distanceFromLastToFirst/config.SCAN_DELAY)*2236.9362920544
+    speedFromLastToFirst = (distanceFromLastToFirst/config.MIN_SCAN_DELAY)*2236.9362920544
 
     print "Distance from last to first: %f km" % distanceFromLastToFirst
     print "Speed from last to first: %f mph" % speedFromLastToFirst
 
-    numberOfPointsAWorkerCanCover = math.floor(config.FREQUENCY_OF_POINT_RESCAN_SECS*(1-(.01 * config.ERROR_PERCENTAGE))/config.SCAN_DELAY)
+    numberOfPointsAWorkerCanCover = math.floor(config.FREQUENCY_OF_POINT_RESCAN_SECS*(1-(.01 * config.ERROR_PERCENTAGE))/config.MIN_SCAN_DELAY)
 
     print "Each worker can cover %d points, ensuring each point is scanned once every %d seconds assuming a failure rate of: %d" % (numberOfPointsAWorkerCanCover, config.FREQUENCY_OF_POINT_RESCAN_SECS, config.ERROR_PERCENTAGE)
 
