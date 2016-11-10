@@ -2,9 +2,7 @@
 from datetime import datetime
 
 DB_ENGINE = 'mysql+mysqldb://root:root@localhost/pokemon'
-ENCRYPT_PATH = './encrypt.so'
-#DB_ENGINE = 'sqlite:///db.sqlite'
-#ENCRYPT_PATH = './libencrypt.so'
+ENCRYPT_PATH = './pokecrypt-pgoapi/libencrypt-linux-x86-64.so'
 
 AREA_NAME = u'Wrocław'
 LANGUAGE = 'EN'  # ISO 639-1 codes EN, DE, FR, and ZH currently supported.
@@ -18,8 +16,9 @@ PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
 
 MIN_SCAN_DELAY = 45  # seconds
 MAX_SPEED_KMH = 15
-FREQUENCY_OF_POINT_RESCAN_SECS = 600
-ERROR_PERCENTAGE = 10
+FREQUENCY_OF_POINT_RESCAN_SECS = 450
+ERROR_PERCENTAGE = 20
+
 SCAN_RADIUS = 70  # metres
 
 ACCOUNTS = [

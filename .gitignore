@@ -11,3 +11,5 @@ node_modules/
 config_bot.json
 *.bk
 *.save
+pokecrypt-pgoapi/
+src/
