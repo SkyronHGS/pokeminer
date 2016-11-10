@@ -170,8 +170,7 @@ class Slave(threading.Thread):
 
     def manageCaptcha(self):
 	response_dict = self.api.check_challenge()
-	logger.info(response_dict)
-	logger.info(response_dict['responses']['CHECK_CHALLENGE']['challenge_url'])
+	logger.info(response_dict['responses']['CHECK_CHALLENGE'])
 
     def main(self):
         """Heart of the worker - goes over each point and reports sightings"""
