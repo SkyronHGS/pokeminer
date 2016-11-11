@@ -6,6 +6,7 @@
 	"generalChannelID":"83947192473127809",
 	"modChannelID":"23511874825723950",
 	"sightingsChannelID":"236245428395273597",
+	"ivsChannelID":"23940584328532794",
 	"testingChannelID":"23817491927417930826",
 	"connectionMessagesChannelIDs":["236245428395273597","23817491927417930826"],
 	"getServer": "localhost:5000",
