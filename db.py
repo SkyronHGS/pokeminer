@@ -4,7 +4,7 @@ import time
 import logging 
 
 from sqlalchemy import create_engine
-from sqlalchemy import Column, VarChar, Integer, BigInteger, String, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
