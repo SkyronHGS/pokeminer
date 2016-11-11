@@ -4,7 +4,7 @@ import time
 import logging 
 
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, BigInteger, String, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, VarChar, Integer, BigInteger, String, ForeignKey, UniqueConstraint
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -73,7 +73,6 @@ class SightingCache(object):
             sighting['STA_IV'],
             sighting['move_1'],
             sighting['move_2'],            
-	    sighting['encounter_id'],
         )
 
     def add(self, sighting):
@@ -146,7 +145,6 @@ class Sighting(Base):
     STA_IV = Column(Integer)
     move_1 = Column(Integer)
     move_2 = Column(Integer)           
-    encounterID = Column(BigInteger)
 
 class Fort(Base):
     __tablename__ = 'forts'
@@ -243,7 +241,6 @@ def add_sighting(session, pokemon):
         STA_IV=pokemon['STA_IV'],
         move_1=pokemon['move_1'],
         move_2=pokemon['move_2'],           
-        encounterID=pokemon['encounter_id'],
     )
     logger.info("added pokemon to db")
     session.add(obj)
