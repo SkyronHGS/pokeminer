@@ -58,6 +58,10 @@ process.on("SIGINT", function () {
     });
 });
 
+function reloadConfig() {
+	config = require("./config_bot.json");
+}
+
 function isMod(msg)
 {
 	var roles = msg.member.roles;
@@ -80,13 +84,20 @@ function helpMessage(msg)
     commands.push("!ECHO");
     commands.push("!LIST");
     commands.push("!LISTRARE");
+    commands.push("!LISTFAV");
+    commands.push("!LISTFAVIVTHRESH");
+    commands.push("!LISTGENIVTHRESH");
     commands.push("!POKEDEX 16/pidgey");
     commands.push("");
     commands.push(config.modName + " Only:");
     commands.push("!ADD 16/pidgey");
     commands.push("!ADDRARE 16/pidgey");
+    commands.push("!ADDFAV 16/pidgey");
     commands.push("!REMOVE 16/pidgey");
     commands.push("!REMOVERARE 16/pidgey");
+    commands.push("!REMOVEFAV 16/pidgey");
+    commands.push("!SETFAVIVTHRESH 82");
+    commands.push("!SETGENIVTHRESH 97");
     commands.push("!CLEARCHAT 98");
     msg.channel.sendMessage(commands);
 }
@@ -179,12 +190,93 @@ clientBot.on("message", function (msg) {
 		{
 			removeRare(msg);
 		}
+		else if (command === "!LISTFAV")
+		{
+			listFav(msg);
+		}
+		else if (command === "!ADDFAV")
+		{
+			addFav(msg);
+		}
+		else if (command === "!REMOVEFAV")
+		{
+			removeFav(msg);
+		}
+		else if (command === "!SETFAVIVTHRESH")
+		{
+			setIVThresh(msg, "FAV");
+		}
+		else if (command === "!LISTFAVIVTHRESH")
+		{
+			listIVThresh(msg, "FAV");
+		}		
+		else if (command === "!SETGENIVTHRESH")
+		{
+			setIVThresh(msg, "GEN");
+		}
+		else if (command === "!LISTGENIVTHRESH")
+		{
+			listIVThresh(msg, "GEN");
+		}		
 		else
 		{
 			msg.channel.sendMessage("Invalid Command");
 		}
 	}
 });
+
+function setIVThresh(msg, favOrGen) {
+	if (isMod(msg))
+	{
+		if (msg.contentAll.length > 1)
+		{
+			var number = parseInt(msg.contentAll[1]);
+			if (number <= 100 && number >= 0 && number != NaN)
+			{
+				var config = require( __dirname + '/config_bot.json' );
+				var type = "";
+				if (favOrGen == "FAV")
+				{
+					type = "Favorite"
+					config.favoriteIVRequirement = number;
+				}
+				else if (favOrGen == "GEN")
+				{
+					type = "General"
+                        	        config.generalIVRequirement = number;
+                	        }
+				fs.writeFileSync( __dirname + '/config_bot.json' , JSON.stringify(config));
+				delete require.cache[ __dirname + '/config_bot.json' ]
+				msg.channel.sendMessage(type + " IV threshold set successfully to " + msg.contentAll[1] + "%");
+				reloadConfig();
+			}
+			else {
+                        	msg.channel.sendMessage("IV threshold must be 0-100");
+                	}
+		}
+		else {
+			msg.channel.sendMessage("No parameter detected");
+		}
+	}
+	
+}
+function listIVThresh(msg, favOrGen) {
+	var config = require( __dirname + '/config_bot.json' );
+	var type = "";
+	var number = "-1";
+	if (favOrGen == "FAV")
+	{
+		type = "Favorite";
+		number = config.favoriteIVRequirement.toString();
+	}
+        else if (favOrGen == "GEN")
+        {
+		type = "General";
+		number = config.generalIVRequirement.toString();
+        }
+	var result = type + " IV Threshold: " + number + "%";
+	msg.channel.sendMessage(result);
+}
 
 function list(msg)
 {
@@ -194,6 +286,25 @@ function list(msg)
 	for (var i = 0; i < config.pokeShow.length; i++)
 	{
 		var pokemonInfo = getPokemonInfoFromNumber(config.pokeShow[i]);
+		if (pokemonInfoValid(pokemonInfo))
+		{
+			result.push(pokemonInfo[0].toString() + ": " + pokemonInfo[1]);
+		}
+		else
+		{
+			console.log("error listing");
+		}
+	}
+	msg.channel.sendMessage(result);
+}
+function listFav(msg)
+{
+	var config = require( __dirname + '/config_bot.json' );
+	var result = [];
+	result.push("All favorite pokemon being notified for:");
+	for (var i = 0; i < config.pokeShowFaves.length; i++)
+	{
+		var pokemonInfo = getPokemonInfoFromNumber(config.pokeShowFaves[i]);
 		if (pokemonInfoValid(pokemonInfo))
 		{
 			result.push(pokemonInfo[0].toString() + ": " + pokemonInfo[1]);
@@ -246,6 +357,41 @@ function add(msg)
 					fs.writeFileSync( __dirname + '/config_bot.json' , JSON.stringify(config));
 				} else {
 					msg.channel.sendMessage("Already present in notify list: " + pokemonString);
+				}
+			}
+			else
+			{
+				msg.channel.sendMessage("Error adding");	
+			}
+			delete require.cache[ __dirname + '/config_bot.json' ]
+		}
+		else {
+			msg.channel.sendMessage("No parameter detected");
+		}
+	}
+}
+function addFav(msg)
+{
+	if (isMod(msg))
+	{
+		if (msg.contentAll.length > 1)
+		{
+			var config = require( __dirname + '/config_bot.json' );
+			var array = config.pokeShowFaves;
+				
+			var pokemonInfo = getPokemonInfoFromNumber(msg.contentAll[1]);
+			if (pokemonInfoValid(pokemonInfo))
+			{
+				var newItem = parseInt(pokemonInfo[0]);
+				var pokemonString = pokemonInfo[0] + ": " + pokemonInfo[1];
+
+				if (array.indexOf(newItem) == -1) {
+						array.push(newItem);   
+					msg.channel.sendMessage("Added to favorite list: " + pokemonString);
+					array = sortPokemonArray(array);
+					fs.writeFileSync( __dirname + '/config_bot.json' , JSON.stringify(config));
+				} else {
+					msg.channel.sendMessage("Already present in favorite list: " + pokemonString);
 				}
 			}
 			else
@@ -387,6 +533,37 @@ function removeRare(msg)
 		msg.channel.sendMessage("No parameter detected");
 	}
 }
+function removeFav(msg)
+{
+	if (isMod(msg))
+	{
+		if (msg.contentAll.length > 1)
+		{
+			var pokemonInfo = getPokemonInfoFromNumber(msg.contentAll[1]);
+			if (pokemonInfoValid(pokemonInfo))
+			{
+				var config = require( __dirname + '/config_bot.json' );
+				var newItem = parseInt(pokemonInfo[0]);
+				var pokemonString = pokemonInfo[0] + ": " + pokemonInfo[1];
+				var array = config.pokeShowFaves;
+				var i = array.indexOf(newItem);
+				if (i == -1) {
+						msg.channel.sendMessage("Unable to remove, was not present: " + pokemonString);
+				} else {
+						array.splice(i, 1);
+						msg.channel.sendMessage("Removed from favorite list: " + pokemonString);
+						fs.writeFileSync( __dirname + '/config_bot.json' , JSON.stringify(config));
+				}
+				delete require.cache[ __dirname + '/config_bot.json' ]
+			} else {
+				msg.channel.sendMessage("Error removing from favorite list");
+			}
+		}
+	}
+	else {
+		msg.channel.sendMessage("No parameter detected");
+	}
+}
   
 function printPokemon(msg)
 {
@@ -486,7 +663,7 @@ function sortPokemonArray(pokemonArray)
     return pokemonArray;
 }
 
-function newPokemonSighted(pokemon) {
+function newPokemonSighted(pokemon, forIVChannel) {
     var diff = new Date(pokemon.disappear_time * 1000) - Date.now();
     console.log("Disappear time:" + pokemon.disappear_time);
     diff = Math.floor(diff / 1000);
@@ -497,7 +674,7 @@ function newPokemonSighted(pokemon) {
     var expiresAtTime = new Date(0);
     expiresAtTime.setTime(pokemon.disappear_time*1000);
     var cEnding = "AM";
-    var cHours = currentTime.getHours() + 1;
+    var cHours = currentTime.getHours();
     var cMin = (currentTime.getMinutes()<10?'0':'') + currentTime.getMinutes();
     var cSec = (currentTime.getSeconds()<10?'0':'') + currentTime.getSeconds();
     if (cHours >= 12)
@@ -535,9 +712,19 @@ function newPokemonSighted(pokemon) {
     console.log("expires");
     console.log(pokemon.disappear_time);
     var locationString = "http://maps.google.com/maps?z=12&t=m&q=loc:" + pokemon.lat + "+" + pokemon.lng;
-    var message = currentTimeStr + " : " + pokemon.name + ' (' + pokemon.pokemon_id + ') found! Disappears in ' + min_diff + ' minutes at '+ expiresAtTimeString +'. \n'+ locationString  +'';
+//    var message = currentTimeStr + " : " + pokemon.name + ' (' + pokemon.ATK_IV + '.' + pokemon.DEF_IV + '.' + pokemon.STA_IV + ') found! Disappears in ' + min_diff + ' minutes at '+ expiresAtTimeString +'. \n'+ locationString  +'';
+    var message = currentTimeStr + " : " + pokemon.name + ' (' + pokemon.ATK_IV + '.' + pokemon.DEF_IV + '.' + pokemon.STA_IV + ') found!\n'+ locationString  +'';
     
-    const channel = clientBot.channels.find('id', config.sightingsChannelID);
+    var channel;
+
+    if (forIVChannel == true)
+    {
+	channel = clientBot.channels.find('id', config.ivsChannelID);
+    }
+    else
+    {
+        channel = clientBot.channels.find('id', config.sightingsChannelID);
+    }
     
     channel.sendFile( __dirname + "/bot/img/"+ pokemon.pokemon_id +".png" , pokemon.pokemon_id +".png", message, (err, msg) => {
                      if (err) {
@@ -585,21 +772,44 @@ function parsePokemon(results) {
     }
     foundPokemon = [];
     for (pokemon in results) {
-        if(config.pokeShow.indexOf(results[pokemon].pokemon_id) >= 0 ) {
+	//console.log("checking: " + results[pokemon].name + " " + results[pokemon].ATK_IV + "." + results[pokemon].DEF_IV + "." + results[pokemon].STA_IV);
+	var sentForIVs = checkForIVsAndSendIfNeeded(results[pokemon]);
+        var askedToShow = config.pokeShow.indexOf(results[pokemon].pokemon_id) >= 0
+	if(askedToShow || sentForIVs) {
             // found
         } else {
             continue; // not found
         }
         foundPokemon.push(results[pokemon].key);
         if (alreadySeen.indexOf(results[pokemon].key) > -1) {
-            continue;
+		continue;
         }
         
-        newPokemonSighted(results[pokemon]);
-        alreadySeen.push(results[pokemon].key);
+	if (askedToShow)
+	{
+        	newPokemonSighted(results[pokemon], false);
+        }
+	alreadySeen.push(results[pokemon].key);
     }
     
     clearStalePokemon(foundPokemon);
+}
+
+function checkForIVsAndSendIfNeeded(pokemon) {
+	if (alreadySeen.indexOf(pokemon.key) > -1) {
+                return true;
+        }
+	var percentage = 100.0* (pokemon.ATK_IV+pokemon.DEF_IV+pokemon.STA_IV)/45;
+	//console.log("calc: " + percentage.toString());
+	if (percentage >= config.generalIVRequirement) {
+		newPokemonSighted(pokemon, true);
+		return true;
+	}
+	else if (config.pokeShowFaves.indexOf(pokemon.pokemon_id) >= 0 && percentage >= config.favoriteIVRequirement) {
+		newPokemonSighted(pokemon, true);			
+		return true;
+	}
+	return false;
 }
 
 function clearStalePokemon(pokemons) {

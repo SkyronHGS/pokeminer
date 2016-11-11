@@ -95,7 +95,6 @@ def get_pokeDiscord():
         name = POKEMON_NAMES[pokemon.pokemon_id]
         datestr = datetime.fromtimestamp(pokemon.expire_timestamp)
         dateoutput = datestr.strftime("%H:%M:%S")
-
         data.append({
             'type': 'pokemon',
             'name': name,
@@ -104,7 +103,10 @@ def get_pokeDiscord():
             'icon': 'static/icons/%d.png' % pokemon.pokemon_id,
             'lat': pokemon.lat,
             'lng': pokemon.lon,
-            'pokemon_id': pokemon.pokemon_id
+            'pokemon_id': pokemon.pokemon_id,
+	    'ATK_IV': pokemon.ATK_IV,
+	    'DEF_IV': pokemon.DEF_IV,
+	    'STA_IV': pokemon.STA_IV
         })
 
     return data

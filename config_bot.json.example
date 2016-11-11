@@ -14,5 +14,8 @@
 	"pokeShow": [3, 4, 5, 6, 9, 26, 27, 28, 56, 57, 63, 65, 66, 67, 68, 74, 76, 83, 86, 87, 88, 89, 106, 107, 108, 113, 115, 122, 124, 125, 126, 131, 132, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151],
 	"pokeShowRare": [ 83, 106, 113, 115, 122, 131, 132, 137, 142, 144, 145, 150, 151 ],
 	"games": ["Pokémon Go","Pikachu"],
-	"maker_keys": ["hf98438h9waefh89waefhZ","kiwuafhiwaoefhwfhwafiohawiofhwfwPBX5"]
+	"maker_keys": ["hf98438h9waefh89waefhZ","kiwuafhiwaoefhwfhwafiohawiofhwfwPBX5"],
+	"pokeShowFaves":[1,2,3],
+	"favoriteIVRequirement": 82,
+	"generalIVRequirement":93
 }
