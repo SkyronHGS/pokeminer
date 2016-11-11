@@ -206,16 +206,16 @@ def add_sighting(session, pokemon):
         .filter(Sighting.lon == pokemon['lon']) \
         .first()
     if existing:
-	logger.info("pokemon was existing")
-    	logger.info("input:")
-    	logger.info(pokemon)
-	logger.info("matched:")
-  	logger.info(existing.id)
-  	logger.info(existing.pokemon_id)
-  	logger.info(existing.spawn_id)
-  	logger.info(existing.lat)
-  	logger.info(existing.lon)
-  	logger.info(existing.time_logged)
+	#logger.info("pokemon was existing")
+    	#logger.info("input:")
+    	#logger.info(pokemon)
+	#logger.info("matched:")
+  	#logger.info(existing.id)
+  	#logger.info(existing.pokemon_id)
+  	#logger.info(existing.spawn_id)
+  	#logger.info(existing.lat)
+  	#logger.info(existing.lon)
+  	#logger.info(existing.time_logged)
         return
     obj = Sighting(
         pokemon_id=pokemon['pokemon_id'],

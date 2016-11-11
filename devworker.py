@@ -7,6 +7,7 @@ import random
 import sys
 import threading
 import time
+import math
 
 from pgoapi import (
     exceptions as pgoapi_exceptions,
@@ -183,6 +184,9 @@ class Slave(threading.Thread):
 
 	secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
         time.sleep(secondsBetween)
+	
+    	startTime = time.time()
+#	logger.info("Starting scanning at: %s", time.asctime( time.localtime(startTime) ) )
 
         for i, point in enumerate(self.points):
             if not self.running:
@@ -200,10 +204,10 @@ class Slave(threading.Thread):
 		    secondsBetween += moreSleep
 		    speed = utils.get_speed_kmh(point1, point2, secondsBetween)
 		
-            logger.info('Visiting point %d (%s %s) step 1', i, point[0], point[1])
+            logger.info('Visiting point %d (%s %s)', i, point[0], point[1])
             self.api.set_position(point[0], point[1], 0)
             cell_ids = pgoapi_utils.get_cell_ids(point[0], point[1])
-            logger.info('Visiting point %d (%s %s) step 2', i, point[0], point[1])
+            #logger.info('Visiting point %d (%s %s) step 2', i, point[0], point[1])
             #self.api.set_position(point[0], point[1], 10)
             #logger.info('Visited point %d (%s %s) step 3', i, point[0], point[1])
             response_dict = self.api.get_map_objects(
@@ -225,12 +229,12 @@ class Slave(threading.Thread):
             pokemons = []
             forts = []
             if map_objects.get('status') == 1:
-		logger.info("Status was 1")
-		logger.info("number of map objects returned: %d",len(map_objects))
+		#logger.info("Status was 1")
+		#logger.info("number of map objects returned: %d",len(map_objects))
 #		logger.info(map_objects)
                 for map_cell in map_objects['map_cells']:
                     for pokemon in map_cell.get('wild_pokemons', []):
- 			logger.info(pokemon)
+ 			#logger.info(pokemon)
                         # Care only about 15 min spawns
                         # 30 and 45 min ones (negative) will be just put after
                         # time_till_hidden is below 15 min
@@ -241,11 +245,11 @@ class Slave(threading.Thread):
     #                        pokemon['time_till_hidden_ms'] > 900000
      #                   )
 			pokemon['time_logged'] = time.time()
-			logger.info("found pokemon. time remaining: %d, %d", pokemon['time_till_hidden_ms'], pokemon['time_logged'])
+			#logger.info("found pokemon. time remaining: %d, %d", pokemon['time_till_hidden_ms'], pokemon['time_logged'])
                         if invalid_time:
 			    logger.error("pokemon had invalid time")
                             continue
-			logger.info("appending pokemon")
+			#logger.info("appending pokemon")
                         pokemons.append(
                             self.normalize_pokemon(
                                 pokemon, map_cell['current_timestamp_ms']
@@ -265,15 +269,24 @@ class Slave(threading.Thread):
             #for raw_fort in forts:
             #    db.add_fort_sighting(session, raw_fort)
             # Commit is not necessary here, it's done by add_fort_sighting
-            logger.info(
-                'Point processed, %d Pokemons and %d forts seen!',
-                len(pokemons),
-                len(forts),
-            )
+            #logger.info(
+            #    'Point processed, %d Pokemons and %d forts seen!',
+            #    len(pokemons),
+            #    len(forts),
+            #)
             # Clear error code and let know that there are Pokemon
             if self.error_code and self.seen_per_cycle:
                 self.error_code = None
             self.step += 1
+    	endTime = time.time()
+#        logger.info("Stopped scanning at: %s", time.asctime( time.localtime(endTime) ) )
+	timeElapsed = endTime - startTime
+	minutes = timeElapsed/60
+	minutesRounded = math.floor(minutes)
+	seconds = math.floor(60*(minutes-minutesRounded))
+	logger.info("Time elapsed: %d:%d", minutesRounded, seconds)	    
+        logger.info("Total pokemon seen: %d (average per cycle: %f)", self.seen_per_cycle, (self.seen_per_cycle/len(self.points)))     
+ 
         session.close()
         if self.seen_per_cycle == 0:
             self.error_code = 'NO POKEMON'
