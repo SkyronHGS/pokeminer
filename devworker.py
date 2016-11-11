@@ -458,7 +458,8 @@ def spawn_workers(workers, status_bar=True):
                 if not worker.running:
                     continue
                 if worker.total_seen <= total_seen:
-                    worker.kill()
+                    #worker.kill()
+		    logger.info("This worker isn't seeing any pokemon")
             # Prepare new list
             workers_check = [
                 (worker, worker.total_seen) for worker in workers.values()
