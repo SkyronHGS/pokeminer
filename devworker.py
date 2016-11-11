@@ -177,9 +177,9 @@ class Slave(threading.Thread):
                                                  player_longitude=point[1])
 	if encounter_result is not None and 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
         	pokemon_info = encounter_result['responses']['ENCOUNTER']['wild_pokemon']['pokemon_data']
-        	pokemon['ATK_IV'] = pokemon_info.get('individual_attack', -1)
-        	pokemon['DEF_IV'] = pokemon_info.get('individual_defense', -1)
-        	pokemon['STA_IV'] = pokemon_info.get('individual_stamina', -1)
+		pokemon['ATK_IV'] = pokemon_info.get('individual_attack', 0)
+        	pokemon['DEF_IV'] = pokemon_info.get('individual_defense', 0)
+        	pokemon['STA_IV'] = pokemon_info.get('individual_stamina', 0)
                 pokemon['move_1'] = pokemon_info['move_1']
                 pokemon['move_2'] = pokemon_info['move_2']
     	else:
