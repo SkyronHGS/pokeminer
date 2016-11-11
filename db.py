@@ -4,7 +4,7 @@ import time
 import logging 
 
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, BigInteger, String, ForeignKey, UniqueConstraint
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -68,6 +68,12 @@ class SightingCache(object):
             sighting['lat'],
             sighting['lon'],
             sighting['time_logged'],
+            sighting['ATK_IV'],
+            sighting['DEF_IV'],
+            sighting['STA_IV'],
+            sighting['move_1'],
+            sighting['move_2'],            
+	    sighting['encounter_id'],
         )
 
     def add(self, sighting):
@@ -135,6 +141,12 @@ class Sighting(Base):
     lat = Column(String(20), index=True)
     lon = Column(String(20), index=True)
     time_logged = Column(Integer)
+    ATK_IV = Column(Integer)
+    DEF_IV = Column(Integer)
+    STA_IV = Column(Integer)
+    move_1 = Column(Integer)
+    move_2 = Column(Integer)           
+    encounterID = Column(BigInteger)
 
 class Fort(Base):
     __tablename__ = 'forts'
@@ -194,9 +206,9 @@ def get_since_query_part(where=True):
 
 def add_sighting(session, pokemon):
     # Check if there isn't the same entry already
-    logger.info("%d", pokemon['time_logged'])
+    #logger.info("%d", pokemon['time_logged'])
     if pokemon in SIGHTING_CACHE:
-    	logger.info("pokemon was in sighting cache")
+    	#logger.info("pokemon was in sighting cache")
         return
     existing = session.query(Sighting) \
         .filter(Sighting.pokemon_id == pokemon['pokemon_id']) \
@@ -226,6 +238,12 @@ def add_sighting(session, pokemon):
         lat=pokemon['lat'],
         lon=pokemon['lon'],
 	time_logged=pokemon['time_logged'],
+    	ATK_IV=pokemon['ATK_IV'],
+        DEF_IV=pokemon['DEF_IV'],
+        STA_IV=pokemon['STA_IV'],
+        move_1=pokemon['move_1'],
+        move_2=pokemon['move_2'],           
+        encounterID=pokemon['encounter_id'],
     )
     logger.info("added pokemon to db")
     session.add(obj)

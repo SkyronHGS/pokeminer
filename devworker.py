@@ -169,6 +169,27 @@ class Slave(threading.Thread):
         self.error_code = 'RESTART'
         self.restart()
 
+    def encounter(self, pokemon, point):
+	time.sleep(config.ENCOUNTER_DELAY)
+	encounter_result = self.api.encounter(encounter_id=pokemon['encounter_id'],
+                                                 spawn_point_id=pokemon['spawn_point_id'],
+                                                 player_latitude=point[0],
+                                                 player_longitude=point[1])
+	if encounter_result is not None and 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
+        	pokemon_info = encounter_result['responses']['ENCOUNTER']['wild_pokemon']['pokemon_data']
+        	pokemon['ATK_IV'] = pokemon_info.get('individual_attack', -1)
+        	pokemon['DEF_IV'] = pokemon_info.get('individual_defense', -1)
+        	pokemon['STA_IV'] = pokemon_info.get('individual_stamina', -1)
+                pokemon['move_1'] = pokemon_info['move_1']
+                pokemon['move_2'] = pokemon_info['move_2']
+    	else:
+		logger.info("Error encountering")
+		pokemon['ATK_IV'] = -1
+                pokemon['DEF_IV'] = -1
+                pokemon['STA_IV'] = -1
+                pokemon['move_1'] = -1 
+                pokemon['move_2'] = -1		
+
     def manageCaptcha(self):
 	response_dict = self.api.check_challenge()
 	logger.info(response_dict['responses']['CHECK_CHALLENGE'])
@@ -249,6 +270,8 @@ class Slave(threading.Thread):
                         if invalid_time:
 			    logger.error("pokemon had invalid time")
                             continue
+
+			self.encounter(pokemon, point)
 			#logger.info("appending pokemon")
                         pokemons.append(
                             self.normalize_pokemon(
@@ -302,7 +325,12 @@ class Slave(threading.Thread):
             'lat': raw['latitude'],
             'lon': raw['longitude'],
             'time_logged': raw['time_logged'],
-        }
+            'ATK_IV' : raw['ATK_IV'],		 	
+            'DEF_IV' : raw['DEF_IV'],		 	
+            'STA_IV' : raw['STA_IV'],		 	
+            'move_1' : raw['move_1'],		 	
+            'move_2' : raw['move_2'],		 	
+	}
 
     @staticmethod
     def normalize_fort(raw):

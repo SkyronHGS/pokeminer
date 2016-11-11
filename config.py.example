@@ -14,6 +14,7 @@ CYCLES_PER_WORKER = 3
 SCAN_DELAY = 10  # seconds
 PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
 
+ENCOUNTER_DELAY = 1 # seconds
 MIN_SCAN_DELAY = 45  # seconds
 MAX_SPEED_KMH = 15
 FREQUENCY_OF_POINT_RESCAN_SECS = 450
