@@ -146,7 +146,8 @@ class Slave(threading.Thread):
                 self.restart()
                 return
             except BannedAccount:
-                self.error_code = 'BANNED?'
+        	print username + " appears to be banned"
+	        self.error_code = 'BANNED?'
                 self.restart(30, 90)
                 return
             except Exception:
@@ -169,7 +170,7 @@ class Slave(threading.Thread):
         self.error_code = 'RESTART'
         self.restart()
 
-    def encounter(self, pokemon, point):
+    def encounter(self, pokemon, point, count):
 	time.sleep(config.ENCOUNTER_DELAY)
 	encounter_result = self.api.encounter(encounter_id=pokemon['encounter_id'],
                                                  spawn_point_id=pokemon['spawn_point_id'],
@@ -184,11 +185,16 @@ class Slave(threading.Thread):
                 pokemon['move_2'] = pokemon_info['move_2']
     	else:
 		logger.info("Error encountering")
-		pokemon['ATK_IV'] = -1
-                pokemon['DEF_IV'] = -1
-                pokemon['STA_IV'] = -1
-                pokemon['move_1'] = -1 
-                pokemon['move_2'] = -1		
+		if count == 0:
+			logger.info("attempting to encounter again")
+			self.encounter(pokemon, point, 1)
+		else:
+			logger.info("giving up on encountering this pokemon")
+			pokemon['ATK_IV'] = -1
+                	pokemon['DEF_IV'] = -1
+                	pokemon['STA_IV'] = -1
+                	pokemon['move_1'] = -1 
+                	pokemon['move_2'] = -1		
 
     def manageCaptcha(self):
 	response_dict = self.api.check_challenge()
@@ -271,7 +277,7 @@ class Slave(threading.Thread):
 			    logger.error("pokemon had invalid time")
                             continue
 
-			self.encounter(pokemon, point)
+			self.encounter(pokemon, point, 0)
 			#logger.info("appending pokemon")
                         pokemons.append(
                             self.normalize_pokemon(
@@ -292,11 +298,11 @@ class Slave(threading.Thread):
             #for raw_fort in forts:
             #    db.add_fort_sighting(session, raw_fort)
             # Commit is not necessary here, it's done by add_fort_sighting
-            #logger.info(
-            #    'Point processed, %d Pokemons and %d forts seen!',
-            #    len(pokemons),
-            #    len(forts),
-            #)
+            logger.info(
+                'Point processed, %d Pokemons and %d forts seen!',
+                len(pokemons),
+                len(forts),
+            )
             # Clear error code and let know that there are Pokemon
             if self.error_code and self.seen_per_cycle:
                 self.error_code = None
