@@ -294,7 +294,7 @@ def add_fort_sighting(session, raw_fort):
 def get_sightings(session):
     logger.info("gettings sightings")
     return session.query(Sighting) \
-        .filter(Sighting.time_logged+(15*60) > time.time()) \
+        .filter(Sighting.time_logged+(30*60) > time.time()) \
         .all()
 
 
