@@ -439,7 +439,6 @@ def spawn_workers(workers, status_bar=True):
     for worker_no in range(count):
 	    print "starting worker: " + str(worker_no)
 	    start_worker(worker_no, sections[worker_no])
-	    time.sleep(1)
     lenghts = [len(p) for p in sections]
     points_stats = {
         'max': max(lenghts),
