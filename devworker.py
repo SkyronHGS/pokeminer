@@ -146,7 +146,7 @@ class Slave(threading.Thread):
                 self.restart()
                 return
             except BannedAccount:
-        	print username + " appears to be banned"
+        	logger.info(username + " appears to be banned")
 	        self.error_code = 'BANNED?'
                 self.restart(30, 90)
                 return
