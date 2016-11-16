@@ -47,11 +47,14 @@ class MalformedResponse(Exception):
 class BannedAccount(Exception):
     """Raised when account is banned"""
 
+class CaptchaAccount(Exception):
+    """Raised when account is banned"""
+
 def configure_logger(filename='worker.log'):
     logging.basicConfig(
         filename=filename,
         format=(
-            '[%(asctime)s][%(threadName)10s][%(levelname)8s][L%(lineno)4d] '
+            '[%(asctime)s]['+config.AREA_NAME+'][%(threadName)10s][%(levelname)8s][L%(lineno)4d] '
             '%(message)s'
         ),
         style='%',
@@ -151,6 +154,11 @@ class Slave(threading.Thread):
 	        self.error_code = 'BANNED?'
                 self.restart(30, 90)
                 return
+            except CaptchaAccount:
+        	logger.info(username + " appears to be captcha")
+	        self.error_code = 'CAPTCHA'
+                self.restart(30, 90)
+                return
             except Exception:
                 logger.exception('A wild exception appeared!')
                 self.error_code = 'EXCEPTION'
@@ -199,8 +207,10 @@ class Slave(threading.Thread):
 
     def manageCaptcha(self):
 	response_dict = self.api.check_challenge()
-	logger.info(self.username + ": " + str(response_dict['responses']['CHECK_CHALLENGE']))
-
+	if 'challenge_url' in response_dict['responses']['CHECK_CHALLENGE']:
+		if (response_dict['responses']['CHECK_CHALLENGE']['challenge_url'] != u' '):
+			raise CaptchaAccount
+    
     def main(self):
         """Heart of the worker - goes over each point and reports sightings"""
         session = db.Session()
