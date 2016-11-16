@@ -96,8 +96,9 @@ class Slave(threading.Thread):
         """
         self.cycle = 1
         self.error_code = None
-
         username, password, service = utils.get_worker_account(self.worker_no)
+
+	self.username = username
         while True:
             try:
                 loginsuccess = self.api.login(
@@ -198,7 +199,7 @@ class Slave(threading.Thread):
 
     def manageCaptcha(self):
 	response_dict = self.api.check_challenge()
-	logger.info(response_dict['responses']['CHECK_CHALLENGE'])
+	logger.info(self.username + ": " + response_dict['responses']['CHECK_CHALLENGE'])
 
     def main(self):
         """Heart of the worker - goes over each point and reports sightings"""
