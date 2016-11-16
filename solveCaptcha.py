@@ -80,24 +80,24 @@ if __name__ == '__main__':
 		                if (captchaURL == u' '):
         		            print(username + ": no captcha on this account")
                 		else:
-                		    print(username + ": need to solve captcha")
-                    		print(captchaURL)
-                    		if py3:
-                    		    response = input("Response:")
-                    		else:
-                    		    response = raw_input("Response:")
+                         		print(username + ": need to solve captcha")
+	                    		print(captchaURL)
+        	            		if py3:
+                	    		    response = input("Response:")
+                    			else:
+                    			    response = raw_input("Response:")
 
-                    		token = response.strip().strip('\r').strip('\n').strip('\r')
-                    		sleep(1)
-				sentResponse = False
-				while (sentResponse == False):
-					try:
-                	    			r2 = api.verify_challenge(token=token)
-                    				sentResponse = True
-						print(r2['responses']['VERIFY_CHALLENGE'])
-					except pgoapi_exceptions.ServerSideRequestThrottlingException:
-        				        print('Server throttling - sleeping for a bit')
-	    		        		time.sleep(random.uniform(1, 3))
+	                    		token = response.strip().strip('\r').strip('\n').strip('\r')
+        	            		sleep(1)
+					sentResponse = False
+					while (sentResponse == False):
+						try:
+                	    				r2 = api.verify_challenge(token=token)
+                    					sentResponse = True
+							print(r2['responses']['VERIFY_CHALLENGE'])
+						except pgoapi_exceptions.ServerSideRequestThrottlingException:
+        					        print('Server throttling - sleeping for a bit')
+	    		        			time.sleep(random.uniform(1, 3))
 			except pgoapi_exceptions.ServerSideRequestThrottlingException:
         		        print('Server throttling - sleeping for a bit')
 	    		        time.sleep(random.uniform(1, 3))
