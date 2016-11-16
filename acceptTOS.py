@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     for count in range(0,workersWeHave):
     	api = PGoApi()
-	api.activate_signature(config.ENCRYPT_PATH)
+#	api.activate_signature(config.ENCRYPT_PATH)
 	api.set_position(0, 0, 100)
         username, password, service = utils.get_worker_account(count)
 #	print(username)
