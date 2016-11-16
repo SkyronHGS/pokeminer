@@ -78,6 +78,7 @@ class Slave(threading.Thread):
         self.worker_no = worker_no
         local_data.worker_no = worker_no
         self.points = points
+	self.total_distance_travled = 0.0
         self.count_points = len(self.points)
         self.step = 0
         self.cycle = 0
@@ -207,7 +208,6 @@ class Slave(threading.Thread):
 
     def checkWorkerStatus(self):
 	response_dict = self.api.check_challenge()
-	logger.info(response_dict)
 	if 'status_code' in response_dict:
 		if (response_dict['status_code'] == 3):
 			raise BannedAccount		
@@ -234,13 +234,19 @@ class Slave(threading.Thread):
             if not self.running:
                 return
 	    secondsBetween = 0
-	    if (self.step != 0):
-       	        point1 = self.points[i]
-                point2 = self.points[i-1]
-		secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
-                time.sleep(secondsBetween)
-		speed = utils.get_speed_kmh(point1, point2, secondsBetween)
-	    	while (speed > config.MAX_SPEED_KMH):
+	    
+	    secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
+            time.sleep(secondsBetween)
+	    if (len(self.points) > 1):
+	    	if (self.step == 0):
+			point1 = self.points[i]
+                	point2 = self.points[len(self.points)-1]
+	    	else:
+       	        	point1 = self.points[i]
+                	point2 = self.points[i-1]
+
+	    	speed = utils.get_speed_kmh(point1, point2, secondsBetween)
+		while (speed > config.MAX_SPEED_KMH):
 		    moreSleep = random.uniform(.5,2.5)
 		    time.sleep(moreSleep)
 		    secondsBetween += moreSleep
