@@ -364,6 +364,7 @@ function add(msg)
 				msg.channel.sendMessage("Error adding");	
 			}
 			delete require.cache[ __dirname + '/config_bot.json' ]
+			reloadConfig();
 		}
 		else {
 			msg.channel.sendMessage("No parameter detected");
@@ -399,6 +400,7 @@ function addFav(msg)
 				msg.channel.sendMessage("Error adding");	
 			}
 			delete require.cache[ __dirname + '/config_bot.json' ]
+			reloadConfig();
 		}
 		else {
 			msg.channel.sendMessage("No parameter detected");
@@ -445,6 +447,7 @@ function addRare(msg)
 				msg.channel.sendMessage("Error adding");
 			}
 			delete require.cache[ __dirname + '/config_bot.json' ]
+			reloadConfig();
 		}
 		else {
 			msg.channel.sendMessage("No parameter detected");
@@ -491,6 +494,7 @@ function remove(msg)
 					fs.writeFileSync( __dirname + '/config_bot.json' , JSON.stringify(config));
 
 				delete require.cache[ __dirname + '/config_bot.json' ]
+				reloadConfig();
 			} else {
 				msg.channel.sendMessage("Error removing from notify list");
 			}				
@@ -524,6 +528,7 @@ function removeRare(msg)
 						fs.writeFileSync( __dirname + '/config_bot.json' , JSON.stringify(config));
 				}
 				delete require.cache[ __dirname + '/config_bot.json' ]
+				reloadConfig();
 			} else {
 				msg.channel.sendMessage("Error removing from notify list");
 			}
@@ -555,6 +560,7 @@ function removeFav(msg)
 						fs.writeFileSync( __dirname + '/config_bot.json' , JSON.stringify(config));
 				}
 				delete require.cache[ __dirname + '/config_bot.json' ]
+				reloadConfig();
 			} else {
 				msg.channel.sendMessage("Error removing from favorite list");
 			}
@@ -732,6 +738,10 @@ function newPokemonSighted(pokemon, forIVChannel) {
                      }
                      });
     console.log(pokemon.pokemon_id);
+    for (index in config.pokeShowRare)
+	{
+	console.log(config.pokeShowRare[index]);
+}
     if(config.pokeShowRare.indexOf(pokemon.pokemon_id) >= 0 ) {
         // found
         triggerIFTTT();
