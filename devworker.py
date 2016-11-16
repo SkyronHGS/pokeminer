@@ -151,8 +151,8 @@ class Slave(threading.Thread):
                 return
             except BannedAccount:
         	logger.info(username + " appears to be banned")
-	        self.error_code = 'BANNED?'
-                self.restart(30, 90)
+	        self.error_code = 'BANNED'
+#                self.restart(30, 90)
                 return
             except CaptchaAccount:
         	logger.info(username + " appears to be captcha")
@@ -205,8 +205,12 @@ class Slave(threading.Thread):
                 	pokemon['move_1'] = -1 
                 	pokemon['move_2'] = -1		
 
-    def manageCaptcha(self):
+    def checkWorkerStatus(self):
 	response_dict = self.api.check_challenge()
+	logger.info(response_dict)
+	if 'status_code' in response_dict:
+		if (response_dict['status_code'] == 3):
+			raise BannedAccount		
 	if 'challenge_url' in response_dict['responses']['CHECK_CHALLENGE']:
 		if (response_dict['responses']['CHECK_CHALLENGE']['challenge_url'] != u' '):
 			raise CaptchaAccount
@@ -218,7 +222,7 @@ class Slave(threading.Thread):
         self.step = 0
 	speed = -1
 
-	self.manageCaptcha()
+	self.checkWorkerStatus()
 
 	secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
         time.sleep(secondsBetween)
