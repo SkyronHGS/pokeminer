@@ -98,15 +98,17 @@
         }
 
         function getOpacity (item) {
-            var diff = (item.expires_at - new Date().getTime() / 1000);
-            if (diff > 600) {
-                return 1;
-            }
-            return 0.5 + diff / 600;
+//            var diff = (item.expires_at - new Date().getTime() / 1000);
+//            if (diff > 600) {
+//                return 1;
+//            }
+//            return 0.5 + diff / 600;
+		return 1;
         }
 
         function PokemonMarker (raw) {
-            var icon = new PokemonIcon({iconUrl: '/static/icons/' + raw.pokemon_id + '.png'});
+            console.log("getting icon");
+	    var icon = new PokemonIcon({iconUrl: '/static/icons/' + raw.pokemon_id + '.png'});
             var marker = L.marker([raw.lat, raw.lon], {icon: icon, opacity: 1});
             marker.raw = raw;
             markers[raw.id] = marker;
@@ -125,14 +127,14 @@
                 if (diff > 0) {
                     marker.setOpacity(getOpacity(marker.raw));
                 } else {
-                    if (marker.raw.trash) {
-                        marker.removeFrom(overlays.Trash);
-                    } else {
-                        marker.removeFrom(overlays.Pokemons);
-                    }
-                    marker.removeFrom(map);
-                    markers[marker.raw.id] = undefined;
-                    clearInterval(marker.opacityInterval);
+                  //  if (marker.raw.trash) {
+                  //      marker.removeFrom(overlays.Trash);
+                  //  } else {
+                   //     marker.removeFrom(overlays.Pokemons);
+                   // }
+                   // marker.removeFrom(map);
+                   // markers[marker.raw.id] = undefined;
+                   // clearInterval(marker.opacityInterval);
                 }
             }, 1000);
             marker.bindPopup();
