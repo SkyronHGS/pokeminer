@@ -107,23 +107,23 @@ class Slave(threading.Thread):
                 )
                 if not loginsuccess:
                     self.error_code = 'LOGIN FAIL'
-                    self.restart()
-                    return
+                    #self.restart()
+                    return False
             except pgoapi_exceptions.AuthException:
                 logger.warning('Login failed!')
                 self.error_code = 'LOGIN FAIL'
-                self.restart()
-                return
+                #self.restart()
+                return False
             except pgoapi_exceptions.NotLoggedInException:
                 logger.error('Invalid credentials')
                 self.error_code = 'BAD LOGIN'
-                self.restart()
-                return
+                #self.restart()
+                return False
             except pgoapi_exceptions.ServerBusyOrOfflineException:
                 logger.info('Server too busy - restarting')
-                self.error_code = 'RETRYING'
-                self.restart()
-                return
+                self.error_code = 'BUSY'
+                #self.restart()
+                return False
             except pgoapi_exceptions.ServerSideRequestThrottlingException:
                 logger.info('Server throttling - sleeping for a bit')
                 time.sleep(random.uniform(1, 5))
@@ -131,10 +131,11 @@ class Slave(threading.Thread):
             except Exception:
                 logger.exception('A wild exception appeared!')
                 self.error_code = 'EXCEPTION'
-                self.restart()
-                return
+                #self.restart()
+                #return
+		continue
             break
-	
+	return True
 
     def run(self):
         """Wrapper for self.main - runs it a few times before restarting
@@ -143,17 +144,28 @@ class Slave(threading.Thread):
         """
         self.cycle = 1
         self.error_code = None
+	# TODO - add fail counts for the continues
         while self.cycle <= config.CYCLES_PER_WORKER:
-            if not self.running:
-                self.restart()
-                return
+            #if not self.running:
+            #    self.restart()
+            #    return
             try:
-                self.main()
+                if (self.cycle > 1):
+                    time.sleep(random.randint(30, 60))
+		
+                self.error_code = None
+
+            	success = self.login()	
+         	if not success:
+                    return
+		self.main()
+
             except MalformedResponse:
                 logger.warning('Malformed response received!')
-                self.error_code = 'RESTART'
-                self.restart()
-                return
+                self.error_code = 'MALFORMED'
+                #self.restart()
+                #return
+		continue
             except BannedAccount:
         	logger.info(username + " appears to be banned")
 	        self.error_code = 'BANNED'
@@ -167,22 +179,22 @@ class Slave(threading.Thread):
             except Exception:
                 logger.exception('A wild exception appeared!')
                 self.error_code = 'EXCEPTION'
-                self.restart()
-                return
-            if not self.running:
-                self.restart()
-                return
+                #self.restart()
+                #return
+		continue
+            #if not self.running:
+            #    self.restart()
+            #    return
             self.cycle += 1
-            if self.cycle <= config.CYCLES_PER_WORKER:
-                logger.info('Going to sleep for a bit')
-                self.error_code = 'SLEEP'
-                self.running = False
-                time.sleep(random.randint(30, 60))
-                logger.info('AWAKEN MY MASTERS')
-                self.running = True
-                self.error_code = None
-        self.error_code = 'RESTART'
-        self.restart()
+            #if self.cycle <= config.CYCLES_PER_WORKER:
+            #    logger.info('Going to sleep for a bit')
+            #    self.error_code = 'SLEEP'
+                #self.running = False
+            #    logger.info('AWAKEN MY MASTERS')
+                #self.running = True
+            #self.error_code = None
+        #self.error_code = 'RESTART'
+        #self.restart()
 
     def encounter(self, pokemon, point, count):
 	time.sleep(config.ENCOUNTER_DELAY)
@@ -222,8 +234,6 @@ class Slave(threading.Thread):
     def main(self):
         """Heart of the worker - goes over each point and reports sightings"""
         
-	self.login()	
-
 	session = db.Session()
         self.seen_per_cycle = 0
         self.step = 0
@@ -394,10 +404,10 @@ class Slave(threading.Thread):
             msg=msg
         )
 
-    def restart(self, sleep_min=5, sleep_max=20):
-        """Sleeps for a bit, then restarts"""
-        time.sleep(random.randint(sleep_min, sleep_max))
-        start_worker(self.worker_no, self.points)
+    #def restart(self, sleep_min=5, sleep_max=20):
+    #    """Sleeps for a bit, then restarts"""
+    #    time.sleep(random.randint(sleep_min, sleep_max))
+    #    start_worker(self.worker_no, self.points)
 
     def kill(self):
         """Marks worker as not running
