@@ -86,20 +86,15 @@ class Slave(threading.Thread):
         self.total_seen = 0
         self.error_code = None
         self.running = True
-        center = self.points[0]
+
+    def login(self):
         self.api = PGoApi()
         #self.api.activate_signature(config.ENCRYPT_PATH)
+        center = self.points[0]
         self.api.set_position(center[0], center[1], 10)  # lat, lon, alt
         if hasattr(config, 'PROXIES') and config.PROXIES:
             self.api.set_proxy(config.PROXIES)
 
-    def run(self):
-        """Wrapper for self.main - runs it a few times before restarting
-
-        Also is capable of restarting in case an error occurs.
-        """
-        self.cycle = 1
-        self.error_code = None
         username, password, service = utils.get_worker_account(self.worker_no)
 
 	self.username = username
@@ -139,6 +134,15 @@ class Slave(threading.Thread):
                 self.restart()
                 return
             break
+	
+
+    def run(self):
+        """Wrapper for self.main - runs it a few times before restarting
+
+        Also is capable of restarting in case an error occurs.
+        """
+        self.cycle = 1
+        self.error_code = None
         while self.cycle <= config.CYCLES_PER_WORKER:
             if not self.running:
                 self.restart()
@@ -217,7 +221,10 @@ class Slave(threading.Thread):
     
     def main(self):
         """Heart of the worker - goes over each point and reports sightings"""
-        session = db.Session()
+        
+	self.login()	
+
+	session = db.Session()
         self.seen_per_cycle = 0
         self.step = 0
 	speed = -1
