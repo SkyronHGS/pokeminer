@@ -157,7 +157,7 @@ class Slave(threading.Thread):
             except CaptchaAccount:
         	logger.info(username + " appears to be captcha")
 	        self.error_code = 'CAPTCHA'
-                self.restart(30, 90)
+#                self.restart(30, 90)
                 return
             except Exception:
                 logger.exception('A wild exception appeared!')
