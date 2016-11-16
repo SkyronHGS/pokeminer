@@ -450,8 +450,13 @@ def spawn_workers(workers, status_bar=True):
 
     count = len(sections)
     workersWeHave = len(config.ACCOUNTS)
+    altWorkersWeHave = len(config.ALT_ACCOUNTS)
 
     if count > workersWeHave: 
+        print str(count-workersWeHave) + " MORE WORKERS REQUIRED"
+	sys.exit(1)    
+
+    if count > altWorkersWeHave: 
         print str(count-workersWeHave) + " MORE WORKERS REQUIRED"
 	sys.exit(1)    
 
