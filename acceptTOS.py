@@ -35,7 +35,7 @@ if __name__ == '__main__':
     	api = PGoApi()
 #	api.activate_signature(config.ENCRYPT_PATH)
 	api.set_position(0, 0, 100)
-        username, password, service = utils.get_worker_account(count)
+        username, password, service = utils.get_worker_account(count, 0, 0)
 #	print(username)
 #	print(password)
 #	print(service)
