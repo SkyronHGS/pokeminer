@@ -495,12 +495,14 @@ def spawn_workers(workers, status_bar=True):
 
     ratio = utils.getSubMultiplier()
 
+    logger.info("Have " + str(workersWeHave) + "of the " + str(count) + " workers we need")
     if count > workersWeHave: 
         print str(count-workersWeHave) + " MORE WORKERS REQUIRED"
 	sys.exit(1)    
 
+    logger.info("Have " + str(subWorkersWeHave) + "of the " + str(ratio*count) + " workers we need")
     if ratio * count > subWorkersWeHave: 
-        print str((ratio * count) - subWorkersWeHave) + " MORE ALT WORKERS REQUIRED"
+        print str((ratio * count) - subWorkersWeHave) + " MORE SUB WORKERS REQUIRED"
 	sys.exit(1)    
 
     start_date = datetime.now()
