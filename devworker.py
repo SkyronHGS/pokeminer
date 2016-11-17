@@ -79,6 +79,7 @@ class Slave(threading.Thread):
         name=None,
         worker_no=None,
         points=None,
+    	numActiveAtOnce=None,
     ):
         super(Slave, self).__init__(group, target, name)
         self.worker_no = worker_no
@@ -92,8 +93,10 @@ class Slave(threading.Thread):
         self.total_seen = 0
         self.error_code = None
         self.running = True
+        self.numActiveAtOnce = numActiveAtOnce
 
-    def login(self, altNumber):
+    def login(self, subNumber, numActiveAtOnce):
+	
 	self.api = PGoApi()
         #self.api.activate_signature(config.ENCRYPT_PATH)
         center = self.points[0]
@@ -101,7 +104,7 @@ class Slave(threading.Thread):
         if hasattr(config, 'PROXIES') and config.PROXIES:
             self.api.set_proxy(config.PROXIES)
 
-        username, password, service = utils.get_worker_account(self.worker_no, altNumber)
+        username, password, service = utils.get_worker_account(self.worker_no, subNumber, numActiveAtOnce)
 	self.username = username
         while True:
             try:
@@ -149,7 +152,7 @@ class Slave(threading.Thread):
         """
         self.cycle = 1
         self.error_code = None
-	altNumber = 0
+	subNumber = 0
 	timestarted = time.time() 
 	# TODO - add fail counts for the continues
         while True:
@@ -159,10 +162,10 @@ class Slave(threading.Thread):
             try:
 		currentTime = time.time()
 		if (currentTime - timestarted > config.MAX_TIME_AWAKE):
-			altNumber = altNumber + 1
+			subNumber = subNumber + 1
 			timestarted = currentTime
-			if (altNumber > utils.getAltMultiplier()):
-				altNumber = 0
+			if (subNumber > utils.getSubMultiplier()):
+				subNumber = 0
 		else:
                 	if (self.cycle > 1):
                     		time.sleep(random.randint(30, 60))
@@ -171,7 +174,7 @@ class Slave(threading.Thread):
 
                 self.error_code = None
 
-            	success = self.login(altNumber)
+            	success = self.login(subNumber, self.numActiveAtOnce)
 	
          	if not success:
                     return
@@ -466,12 +469,13 @@ def get_status_message(workers, count, start_time, points_stats):
     return '\n'.join(output)
 
 
-def start_worker(worker_no, points):
+def start_worker(worker_no, points, count):
     logger.info('Worker (re)starting up!')
     worker = Slave(
         name='worker-%d' % worker_no,
         worker_no=worker_no,
-        points=points
+        points=points,
+	numActiveAtOnce=count
     )
     if (worker_no not in config.DISABLE_WORKERS):
         worker.daemon = True
@@ -487,22 +491,22 @@ def spawn_workers(workers, status_bar=True):
 
     count = len(sections)
     workersWeHave = len(config.ACCOUNTS)
-    altWorkersWeHave = len(config.ALT_ACCOUNTS)
+    subWorkersWeHave = len(config.SUB_ACCOUNTS)
 
-    ratio = utils.getAltMultiplier()
+    ratio = utils.getSubMultiplier()
 
     if count > workersWeHave: 
         print str(count-workersWeHave) + " MORE WORKERS REQUIRED"
 	sys.exit(1)    
 
-    if ratio * count > altWorkersWeHave: 
-        print str((ratio * count) - altWorkersWeHave) + " MORE ALT WORKERS REQUIRED"
+    if ratio * count > subWorkersWeHave: 
+        print str((ratio * count) - subWorkersWeHave) + " MORE ALT WORKERS REQUIRED"
 	sys.exit(1)    
 
     start_date = datetime.now()
     for worker_no in range(count):
 	    print "starting worker: " + str(worker_no)
-	    start_worker(worker_no, sections[worker_no])
+	    start_worker(worker_no, sections[worker_no], count)
     lenghts = [len(p) for p in sections]
     points_stats = {
         'max': max(lenghts),

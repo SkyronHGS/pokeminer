@@ -26,11 +26,12 @@ SCAN_RADIUS = 70  # metres
 
 ACCOUNTS = [
     ('ash_ketchum', 'pik4chu', 'ptc'),
-    ('ziemniak_kalafior', 'ogorek', 'google'),
-    ('noideawhattoputhere', 's3cr3t', 'ptc'),
-    ('whatever', 'mammoth', 'google'),
+    ('ziemniak_kalafior', 'ogorek', 'google')
 ]
-
+SUB_ACCOUNTS = [
+    ('noideawhattoputhere', 's3cr3t', 'ptc'),
+    ('whatever', 'mammoth', 'google')
+]
 TRASH_IDS = [13, 16, 19, 21, 41, 96]
 STAGE2 = [94, 139, 141, 149]
 
