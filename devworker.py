@@ -98,20 +98,20 @@ class Slave(threading.Thread):
     def login(self, subNumber, numActiveAtOnce):
 	
 	self.api = PGoApi()
-        sleep(random.uniform(1, 2))
+        time.sleep(random.uniform(1, 2))
 	#self.api.activate_signature(config.ENCRYPT_PATH)
         center = self.points[0]
-        sleep(random.uniform(1, 2))
+        time.sleep(random.uniform(1, 2))
         self.api.set_position(center[0], center[1], 0)  # lat, lon, alt
         if hasattr(config, 'PROXIES') and config.PROXIES:
-            sleep(random.uniform(1, 2))
+            time.sleep(random.uniform(1, 2))
             self.api.set_proxy(config.PROXIES)
         username, password, service = utils.get_worker_account(self.worker_no, subNumber, numActiveAtOnce)
 	self.username = username
         while True:
             try:
 		
-                sleep(random.uniform(1, 2))
+                time.sleep(random.uniform(1, 2))
                 loginsuccess = self.api.login(
                     username=username,
                     password=password,
