@@ -103,30 +103,32 @@ class Slave(threading.Thread):
         self.api.set_position(center[0], center[1], 0)  # lat, lon, alt
         if hasattr(config, 'PROXIES') and config.PROXIES:
             self.api.set_proxy(config.PROXIES)
-
         username, password, service = utils.get_worker_account(self.worker_no, subNumber, numActiveAtOnce)
 	self.username = username
         while True:
             try:
+		
                 loginsuccess = self.api.login(
                     username=username,
                     password=password,
                     provider=service,
                 )
                 if not loginsuccess:
-                    self.error_code = 'LOGIN FAIL'
+                    self.error_code = 'LOGINFAIL2'
                     #self.restart()
                     return False
             except pgoapi_exceptions.AuthException:
                 logger.warning('Login failed!')
-                self.error_code = 'LOGIN FAIL'
+                self.error_code = 'LOGINFAIL1'
                 #self.restart()
                 return False
+	#	continue
             except pgoapi_exceptions.NotLoggedInException:
                 logger.error('Invalid credentials')
                 self.error_code = 'BAD LOGIN'
                 #self.restart()
                 return False
+		continue
             except pgoapi_exceptions.ServerBusyOrOfflineException:
                 logger.info('Server too busy - restarting')
                 self.error_code = 'BUSY'
@@ -154,7 +156,7 @@ class Slave(threading.Thread):
         self.error_code = None
 	subNumber = 0
 	timestarted = time.time() 
-	# TODO - add fail counts for the continues
+	self.failCount = 0
         while True:
             #if not self.running:
             #    self.restart()
@@ -172,12 +174,21 @@ class Slave(threading.Thread):
 			else:
 			        time.sleep(1)
 
+		if self.failCount >= 3:
+	    	    if self.error_code == None:
+			self.error_code = 'STOPPED'
+		    else:
+			self.error_code = self.error_code + "-D"
+		    return
+
                 self.error_code = None
 
             	success = self.login(subNumber, self.numActiveAtOnce)
-	
+
          	if not success:
-                    return
+		    self.failCount = self.failCount + 1
+		    sleep(3)
+		    continue
 
 		logger.info("Logged into: " + self.username)		
 
@@ -193,7 +204,9 @@ class Slave(threading.Thread):
         	logger.info(username + " appears to be banned")
 	        self.error_code = 'BANNED'
 #                self.restart(30, 90)
-                return
+                #return
+		self.failCount = self.failCount + 1
+		continue
             except CaptchaAccount:
         	logger.info(username + " appears to be captcha")
 	        self.error_code = 'CAPTCHA'
@@ -208,6 +221,7 @@ class Slave(threading.Thread):
             #if not self.running:
             #    self.restart()
             #    return
+	    self.failCount
             self.cycle += 1
             #if self.cycle <= config.CYCLES_PER_WORKER:
             #    logger.info('Going to sleep for a bit')
