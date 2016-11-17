@@ -201,14 +201,14 @@ class Slave(threading.Thread):
                 #return
 		continue
             except BannedAccount:
-        	logger.info(username + " appears to be banned")
+        	logger.info(self.username + " appears to be banned")
 	        self.error_code = 'BANNED'
 #                self.restart(30, 90)
                 #return
 		self.failCount = self.failCount + 1
 		continue
             except CaptchaAccount:
-        	logger.info(username + " appears to be captcha")
+        	logger.info(self.username + " appears to be captcha")
 	        self.error_code = 'CAPTCHA'
 #                self.restart(30, 90)
                 return
