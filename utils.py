@@ -3,6 +3,8 @@ from geopy import distance, Point
 
 import config
 
+def getAltMultiplier():
+    return math.ceil(config.MIN_TIME_ASLEEP / config.MAX_TIME_AWAKE)
 
 def get_map_center():
     """Returns center of the map"""
@@ -386,7 +388,7 @@ def get_speed_kmh(point1, point2, secondsBetween):
     timeInHours = 1.0 * secondsBetween / 3600
     return 1.0 * distanceTraveled / timeInHours
 
-def get_worker_account(worker_no, getAlt):
+def get_worker_account(worker_no, altNumber):
     """Returns appropriate ACCOUNT entry for worker
 
     Omits disabled workers.
@@ -399,10 +401,10 @@ def get_worker_account(worker_no, getAlt):
         if i in config.DISABLE_WORKERS:
             continue
         if i == worker_no:
-            if getAlt:
-                return config.ALT_ACCOUNTS[account_no]		
+            if altNumber == 0:
+                return config.ACCOUNTS[account_no]		
             else:
-                return config.ACCOUNTS[account_no]
+                return config.ALT_ACCOUNTS[((altNumber-1)*len(config.ACCOUNTS))+account_no]
         account_no += 1
     raise ValueError('Workers incompatible with accounts')
 

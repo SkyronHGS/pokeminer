@@ -24,13 +24,19 @@ import utils
 REQUIRED_SETTINGS = (
     'DB_ENGINE',
     'ENCRYPT_PATH',
-    'CYCLES_PER_WORKER',
     'MAP_START',
     'MAP_END',
     'ACCOUNTS',
     'SCAN_RADIUS',
     'MIN_SCAN_DELAY',
     'DISABLE_WORKERS',
+    'MAX_TIME_AWAKE',
+    'MIN_TIME_ASLEEP',
+    'ENCOUNTER_DELAY',
+    'MIN_SCAN_DELAY',
+    'MAX_SPEED_KMH',
+    'FREQUENCY_OF_POINT_RESCAN_SECS',
+    'ERROR_PERCENTAGE',
 )
 for setting_name in REQUIRED_SETTINGS:
     if not hasattr(config, setting_name):
@@ -87,16 +93,15 @@ class Slave(threading.Thread):
         self.error_code = None
         self.running = True
 
-    def login(self):
-        self.api = PGoApi()
+    def login(self, altNumber):
+	self.api = PGoApi()
         #self.api.activate_signature(config.ENCRYPT_PATH)
         center = self.points[0]
-        self.api.set_position(center[0], center[1], 10)  # lat, lon, alt
+        self.api.set_position(center[0], center[1], 0)  # lat, lon, alt
         if hasattr(config, 'PROXIES') and config.PROXIES:
             self.api.set_proxy(config.PROXIES)
 
-        username, password, service = utils.get_worker_account(self.worker_no)
-
+        username, password, service = utils.get_worker_account(self.worker_no, altNumber)
 	self.username = username
         while True:
             try:
@@ -144,20 +149,35 @@ class Slave(threading.Thread):
         """
         self.cycle = 1
         self.error_code = None
+	altNumber = 0
+	timestarted = time.time() 
 	# TODO - add fail counts for the continues
-        while self.cycle <= config.CYCLES_PER_WORKER:
+        while True:
             #if not self.running:
             #    self.restart()
             #    return
             try:
-                if (self.cycle > 1):
-                    time.sleep(random.randint(30, 60))
-		
+		currentTime = time.time()
+		if (currentTime - timestarted > config.MAX_TIME_AWAKE):
+			altNumber = altNumber + 1
+			timestarted = currentTime
+			if (altNumber > utils.getAltMultiplier()):
+				altNumber = 0
+		else:
+                	if (self.cycle > 1):
+                    		time.sleep(random.randint(30, 60))
+			else:
+			        time.sleep(1)
+
                 self.error_code = None
 
-            	success = self.login()	
+            	success = self.login(altNumber)
+	
          	if not success:
                     return
+
+		logger.info("Logged into: " + self.username)		
+
 		self.main()
 
             except MalformedResponse:
@@ -469,12 +489,14 @@ def spawn_workers(workers, status_bar=True):
     workersWeHave = len(config.ACCOUNTS)
     altWorkersWeHave = len(config.ALT_ACCOUNTS)
 
+    ratio = utils.getAltMultiplier()
+
     if count > workersWeHave: 
         print str(count-workersWeHave) + " MORE WORKERS REQUIRED"
 	sys.exit(1)    
 
-    if count > altWorkersWeHave: 
-        print str(count-workersWeHave) + " MORE WORKERS REQUIRED"
+    if ratio * count > altWorkersWeHave: 
+        print str((ratio * count) - altWorkersWeHave) + " MORE ALT WORKERS REQUIRED"
 	sys.exit(1)    
 
     start_date = datetime.now()

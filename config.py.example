@@ -10,7 +10,6 @@ MAP_START = (12.3456, 34.5678)
 MAP_END = (13.4567, 35.6789)
 #GRID = (2, 2)  # row, column
 DISABLE_WORKERS = []
-CYCLES_PER_WORKER = 3
 SCAN_DELAY = 10  # seconds
 PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
 
@@ -20,7 +19,7 @@ MAX_SPEED_KMH = 25
 FREQUENCY_OF_POINT_RESCAN_SECS = 450
 ERROR_PERCENTAGE = 20
 
-MIN_TIME_ALIVE = 900 # seconds
+MAX_TIME_AWAKE = 900 # seconds
 MIN_TIME_ASLEEP = 900 # seconds
 
 SCAN_RADIUS = 70  # metres
