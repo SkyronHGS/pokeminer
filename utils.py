@@ -1,32 +1,17 @@
 import math
 from geopy import distance, Point
-
 import config
 
 '''this is NOT compatible with sub workers.'''
 def swapCaptchaWorker(worker_no, subNumber, numActiveAtOnce):
-    """Returns appropriate ACCOUNT entry for worker
+	config.CAPTCHA_ACCOUNTS.append(config.ACCOUNTS[worker_no])
+	if (len(config.SUB_ACCOUNTS) > 0):
+		config.ACCOUNTS[worker_no] = config.SUB_ACCOUNTS.pop()
+		return config.ACCOUNTS[worker_no]
+	else:
+		return None, None, None
 
-    Omits disabled workers.
-    """
-    account_no = 0
-    for i in range(worker_no + 1):
-        if i in config.DISABLE_WORKERS:
-            continue
-        if i == worker_no:
-            if subNumber == 0:
-		logger.info("moving to captcha: " + config.ACCOUNTS[account_no])
-		config.CAPTCHA_ACCOUNTS.append(config.ACCOUNTS[account_no])
-		if (len(config.SUB_ACCOUNTS.size)):
-	                config.ACCOUNTS[account_no] = config.SUB_ACCOUNTS.pop()
-			logger.info("moved from subs: " + config.ACCOUNTS[account_no])
-    		else
-			logger.info("no more sub accounts")
-			return None, None, None			    
-	   ''' else:
-                return config.SUB_ACCOUNTS[((subNumber-1)*numActiveAtOnce)+account_no]'''
-        account_no += 1
-    raise ValueError('Workers incompatible with accounts')
+	raise ValueError('Workers incompatible with accounts')
 
 
 def getSubMultiplier():

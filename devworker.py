@@ -39,6 +39,7 @@ REQUIRED_SETTINGS = (
     'SLEEP',
     'ENCOUNTER',
     'MAX_CYCLES_TILL_QUIT',
+    'CAPTCHA_ACCOUNTS',
 )
 for setting_name in REQUIRED_SETTINGS:
     if not hasattr(config, setting_name):
@@ -113,6 +114,8 @@ class Slave(threading.Thread):
             self.api.set_proxy(config.PROXIES)
         username, password, service = utils.get_worker_account(self.worker_no, subNumber, numActiveAtOnce)
 	self.username = username
+	self.subNumber = subNumber
+	self.numActiveAtOnce = numActiveAtOnce
         while True:
             try:
 		
@@ -233,11 +236,19 @@ class Slave(threading.Thread):
             	progressMsg = '{progress:.0f}%'.format(progress=(self.step / float(self.count_points) * 100))
         	logger.info(self.username + " appears to be captcha at " + progressMsg)
 	        self.error_code = 'CAPTCHA-' + progressMsg
-		username, password, service = utils.get_worker_account(self.worker_no, subNumber, numActiveAtOnce)
+		logger.info("1")
+		username, password, service = utils.swapCaptchaWorker(self.worker_no, self.subNumber, self.numActiveAtOnce)
+		logger.info("2")
 		if (username == None and password == None and service == None):
-	                return
+	                logger.info("Stopping worker as there appear to be no more accounts")
+			self.error_code = self.error_code + "-X"
+			return
 		else:
-	                self.restart(30, 90)
+			self.error_code = self.error_code + "-R"
+			logger.info("Found new account, restarting");
+	                self.minorFailCount = self.minorFailCount + 1 # remove this if I make it resume in the middle of the path
+			#self.restart(30, 90)
+			continue
             except Exception:
                 logger.exception('A wild exception appeared!')
                 self.error_code = 'EXCEPTION'

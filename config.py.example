@@ -37,6 +37,9 @@ SUB_ACCOUNTS = [
     ('noideawhattoputhere', 's3cr3t', 'ptc'),
     ('whatever', 'mammoth', 'google')
 ]
+CAPTCHA_ACCOUNTS = [
+]
+
 TRASH_IDS = [13, 16, 19, 21, 41, 96]
 STAGE2 = [94, 139, 141, 149]
 
