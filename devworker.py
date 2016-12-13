@@ -19,7 +19,6 @@ import config
 import db
 import utils
 
-
 # Check whether config has all necessary attributes
 REQUIRED_SETTINGS = (
     'DB_ENGINE',
@@ -58,6 +57,9 @@ class BannedAccount(Exception):
 
 class CaptchaAccount(Exception):
     """Raised when account is banned"""
+
+class NoMoreSubs(Exception):
+    """Raised when there are no more sub accounts"""
 
 def configure_logger(filename='worker.log'):
     logging.basicConfig(
@@ -167,7 +169,8 @@ class Slave(threading.Thread):
 	self.minorFailCount = 0
         while True:
 	    self.cycle += 1
-	    self.progress = 0
+	    self.seen_per_cycle = 0
+	    self.step = 0
 
             #if not self.running:
             #    self.restart()
@@ -227,10 +230,14 @@ class Slave(threading.Thread):
 		self.failCount = self.failCount + 1
 		continue
             except CaptchaAccount:
-        	logger.info(self.username + " appears to be captcha")
-	        self.error_code = 'CAPTCHA'
-#                self.restart(30, 90)
-                return
+            	progressMsg = '{progress:.0f}%'.format(progress=(self.step / float(self.count_points) * 100))
+        	logger.info(self.username + " appears to be captcha at " + progressMsg)
+	        self.error_code = 'CAPTCHA-' + progressMsg
+		username, password, service = utils.get_worker_account(self.worker_no, subNumber, numActiveAtOnce)
+		if (username == None and password == None and service == None):
+	                return
+		else:
+	                self.restart(30, 90)
             except Exception:
                 logger.exception('A wild exception appeared!')
                 self.error_code = 'EXCEPTION'
@@ -292,8 +299,6 @@ class Slave(threading.Thread):
         """Heart of the worker - goes over each point and reports sightings"""
         
 	session = db.Session()
-        self.seen_per_cycle = 0
-        self.step = 0
 	speed = -1
 
 	self.checkWorkerStatus()
