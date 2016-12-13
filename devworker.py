@@ -39,6 +39,7 @@ REQUIRED_SETTINGS = (
     'ERROR_PERCENTAGE',
     'SLEEP',
     'ENCOUNTER',
+    'MAX_CYCLES_TILL_QUIT',
 )
 for setting_name in REQUIRED_SETTINGS:
     if not hasattr(config, setting_name):
@@ -158,16 +159,26 @@ class Slave(threading.Thread):
 
         Also is capable of restarting in case an error occurs.
         """
-        self.cycle = 1
+        self.cycle = 0
         self.error_code = None
 	subNumber = 0
 	timestarted = time.time() 
 	self.failCount = 0
         while True:
+	    self.cycle += 1
+	    self.progress = 0
+
             #if not self.running:
             #    self.restart()
             #    return
             try:
+		if (config.MAX_CYCLES_TILL_QUIT+1 == self.cycle):
+	    	    if self.error_code == None:
+			self.error_code = 'COMPLETE'
+		    else:
+			self.error_code = self.error_code + "-C"
+		    return
+
 		currentTime = time.time()
 		if (config.SLEEP == 1 and currentTime - timestarted > config.MAX_TIME_AWAKE):
 			subNumber = subNumber + 1
@@ -227,8 +238,7 @@ class Slave(threading.Thread):
             #if not self.running:
             #    self.restart()
             #    return
-	    self.failCount
-            self.cycle += 1
+	    self.failCount = 0
             #if self.cycle <= config.CYCLES_PER_WORKER:
             #    logger.info('Going to sleep for a bit')
             #    self.error_code = 'SLEEP'

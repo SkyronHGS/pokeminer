@@ -16,6 +16,8 @@ PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
 SLEEP = 0
 ENCOUNTER = 0
 
+MAX_CYCLES_TILL_QUIT = 1
+
 ENCOUNTER_DELAY = 1 # seconds
 MIN_SCAN_DELAY = 20  # seconds
 MAX_SPEED_KMH = 25
