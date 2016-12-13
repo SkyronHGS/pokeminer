@@ -59,9 +59,6 @@ class BannedAccount(Exception):
 class CaptchaAccount(Exception):
     """Raised when account is banned"""
 
-class NoMoreSubs(Exception):
-    """Raised when there are no more sub accounts"""
-
 def configure_logger(filename='worker.log'):
     logging.basicConfig(
         filename=filename,
@@ -120,15 +117,15 @@ class Slave(threading.Thread):
             try:
 		
                 time.sleep(random.uniform(1, 2))
-                loginsuccess = self.api.login(
+                self.api.set_authentication(
                     username=username,
                     password=password,
                     provider=service,
                 )
-                if not loginsuccess:
-                    self.error_code = 'LOGINFAIL2'
-                    #self.restart()
-                    return False
+                #if not loginsuccess:
+                #    self.error_code = 'LOGINFAIL2'
+                #    #self.restart()
+                #    return False
             except pgoapi_exceptions.AuthException:
                 logger.warning('Login failed!')
                 self.error_code = 'LOGINFAIL1'
@@ -273,11 +270,24 @@ class Slave(threading.Thread):
 
     def encounter(self, pokemon, point, count):
 	time.sleep(config.ENCOUNTER_DELAY)
-	encounter_result = self.api.encounter(encounter_id=pokemon['encounter_id'],
-                                                 spawn_point_id=pokemon['spawn_point_id'],
-                                                 player_latitude=point[0],
-                                                 player_longitude=point[1])
-	if encounter_result is not None and 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
+	
+	# Set up encounter request envelope
+	req = self.api.create_request()
+	encounter_result = req.encounter(encounter_id=p['encounter_id'],
+		spawn_point_id=pokemon['spawn_point_id'],
+                player_latitude=point[0],
+                player_longitude=point[1])
+        encounter_result = req.check_challenge()
+        encounter_result = req.get_hatched_eggs()
+        encounter_result = req.get_inventory()
+        encounter_result = req.check_awarded_badges()
+        encounter_result = req.download_settings()
+        encounter_result = req.get_buddy_walked()
+        encounter_result = req.call()	
+
+	self.checkResponseStatus(encounter_result)
+
+	if 'wild_pokemon' in encounter_result['responses']['ENCOUNTER']:
         	pokemon_info = encounter_result['responses']['ENCOUNTER']['wild_pokemon']['pokemon_data']
 		pokemon['ATK_IV'] = pokemon_info.get('individual_attack', 0)
         	pokemon['DEF_IV'] = pokemon_info.get('individual_defense', 0)
@@ -297,22 +307,31 @@ class Slave(threading.Thread):
                 	pokemon['move_1'] = -1 
                 	pokemon['move_2'] = -1		
 
-    def checkWorkerStatus(self):
-	response_dict = self.api.check_challenge()
-	if 'status_code' in response_dict:
-		if (response_dict['status_code'] == 3):
-			raise BannedAccount		
+    def checkResponseStatus(self, response_dict):
+#	response_dict = self.api.check_challenge()
+
+        if not isinstance(response_dict, dict):
+            logger.warning('Response: %s', response_dict)
+            raise MalformedResponse
+        if response_dict['status_code'] == 3:
+            logger.warning('Account banned')
+            raise BannedAccount
+        responses = response_dict.get('responses')
+        if not responses:
+            logger.warning('Response: %s', response_dict)
+            raise MalformedResponse
 	if 'challenge_url' in response_dict['responses']['CHECK_CHALLENGE']:
 		if (response_dict['responses']['CHECK_CHALLENGE']['challenge_url'] != u' '):
-			raise CaptchaAccount
+		raise CaptchaAccount
     
+
     def main(self):
         """Heart of the worker - goes over each point and reports sightings"""
         
 	session = db.Session()
 	speed = -1
 
-	self.checkWorkerStatus()
+	#self.checkResponseStatus()
 
 	secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
         time.sleep(secondsBetween)
@@ -348,21 +367,20 @@ class Slave(threading.Thread):
             #logger.info('Visiting point %d (%s %s) step 2', i, point[0], point[1])
             #self.api.set_position(point[0], point[1], 10)
             #logger.info('Visited point %d (%s %s) step 3', i, point[0], point[1])
-            response_dict = self.api.get_map_objects(
+            req = self.api.create_request()
+	    response_dict = req.get_map_objects(
                 latitude=pgoapi_utils.f2i(point[0]),
                 longitude=pgoapi_utils.f2i(point[1]),
                 cell_id=cell_ids
             )
-            if not isinstance(response_dict, dict):
-                logger.warning('Response: %s', response_dict)
-                raise MalformedResponse
-            if response_dict['status_code'] == 3:
-                logger.warning('Account banned')
-                raise BannedAccount
-            responses = response_dict.get('responses')
-            if not responses:
-                logger.warning('Response: %s', response_dict)
-                raise MalformedResponse
+	    response_dict = req.check_challenge()
+            response_dict = req.get_hatched_eggs()
+            response_dict = req.get_inventory()
+            response_dict = req.check_awarded_badges()
+            response_dict = req.download_settings()
+            response_dict = req.get_buddy_walked()
+            response_dict = req.call()
+	    self.checkResponseStatus(response_dict)
             map_objects = response_dict['responses'].get('GET_MAP_OBJECTS', {})
             pokemons = []
             forts = []
