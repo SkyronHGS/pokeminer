@@ -164,6 +164,7 @@ class Slave(threading.Thread):
 	subNumber = 0
 	timestarted = time.time() 
 	self.failCount = 0
+	self.minorFailCount = 0
         while True:
 	    self.cycle += 1
 	    self.progress = 0
@@ -172,7 +173,7 @@ class Slave(threading.Thread):
             #    self.restart()
             #    return
             try:
-		if (config.MAX_CYCLES_TILL_QUIT+1 == self.cycle):
+		if (config.MAX_CYCLES_TILL_QUIT+1 <= self.cycle-self.failCount - self.minorFailCount):
 	    	    if self.error_code == None:
 			self.error_code = 'COMPLETE'
 		    else:
@@ -216,6 +217,7 @@ class Slave(threading.Thread):
                 self.error_code = 'MALFORMED'
                 #self.restart()
                 #return
+		self.minorFailCount = self.minorFailCount + 1
 		continue
             except BannedAccount:
         	logger.info(self.username + " appears to be banned")
@@ -234,10 +236,12 @@ class Slave(threading.Thread):
                 self.error_code = 'EXCEPTION'
                 #self.restart()
                 #return
+		self.minorFailCount = self.minorFailCount + 1
 		continue
             #if not self.running:
             #    self.restart()
             #    return
+	    self.minorFailCount = 0
 	    self.failCount = 0
             #if self.cycle <= config.CYCLES_PER_WORKER:
             #    logger.info('Going to sleep for a bit')
