@@ -37,6 +37,8 @@ REQUIRED_SETTINGS = (
     'MAX_SPEED_KMH',
     'FREQUENCY_OF_POINT_RESCAN_SECS',
     'ERROR_PERCENTAGE',
+    'SLEEP',
+    'ENCOUNTER',
 )
 for setting_name in REQUIRED_SETTINGS:
     if not hasattr(config, setting_name):
@@ -167,7 +169,7 @@ class Slave(threading.Thread):
             #    return
             try:
 		currentTime = time.time()
-		if (currentTime - timestarted > config.MAX_TIME_AWAKE):
+		if (config.SLEEP == 1 and currentTime - timestarted > config.MAX_TIME_AWAKE):
 			subNumber = subNumber + 1
 			timestarted = currentTime
 			if (subNumber > utils.getSubMultiplier()):
@@ -355,8 +357,16 @@ class Slave(threading.Thread):
                         if invalid_time:
 			    logger.error("pokemon had invalid time")
                             continue
+			
+			if config.ENCOUNTER == 1:
+				self.encounter(pokemon, point, 0)
+			else:
+				pokemon['ATK_IV'] = -2
+		        	pokemon['DEF_IV'] = -2
+		        	pokemon['STA_IV'] = -2
+        	        	pokemon['move_1'] = -2
+        		        pokemon['move_2'] = -2
 
-			self.encounter(pokemon, point, 0)
 			#logger.info("appending pokemon")
                         pokemons.append(
                             self.normalize_pokemon(
@@ -511,17 +521,17 @@ def spawn_workers(workers, status_bar=True):
     workersWeHave = len(config.ACCOUNTS)
     subWorkersWeHave = len(config.SUB_ACCOUNTS)
 
-    ratio = utils.getSubMultiplier()
-
     logger.info("Have " + str(workersWeHave) + " of the " + str(count) + " workers we need")
     if count > workersWeHave: 
         print str(count-workersWeHave) + " MORE WORKERS REQUIRED"
 	sys.exit(1)    
 
-    logger.info("Have " + str(subWorkersWeHave) + " of the " + str(ratio*count) + " workers we need")
-    if ratio * count > subWorkersWeHave: 
-        print str((ratio * count) - subWorkersWeHave) + " MORE SUB WORKERS REQUIRED"
-	sys.exit(1)    
+    if (config.SLEEP == 1):
+	    ratio = utils.getSubMultiplier()
+	    logger.info("Have " + str(subWorkersWeHave) + " of the " + str(ratio*count) + " workers we need")
+	    if ratio * count > subWorkersWeHave: 
+	        print str((ratio * count) - subWorkersWeHave) + " MORE SUB WORKERS REQUIRED"
+		sys.exit(1)    
 
     start_date = datetime.now()
     for worker_no in range(count):

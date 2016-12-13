@@ -13,6 +13,9 @@ DISABLE_WORKERS = []
 SCAN_DELAY = 10  # seconds
 PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
 
+SLEEP = 0
+ENCOUNTER = 0
+
 ENCOUNTER_DELAY = 1 # seconds
 MIN_SCAN_DELAY = 20  # seconds
 MAX_SPEED_KMH = 25
