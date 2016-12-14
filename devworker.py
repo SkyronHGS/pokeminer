@@ -59,6 +59,9 @@ class BannedAccount(Exception):
 class CaptchaAccount(Exception):
     """Raised when account is banned"""
 
+class FunkyAccount(Exception):
+    """Raised when account is acting up"""
+
 def configure_logger(filename='worker.log'):
     logging.basicConfig(
         filename=filename,
@@ -166,7 +169,6 @@ class Slave(threading.Thread):
 	subNumber = 0
 	timestarted = time.time() 
 	self.failCount = 0
-	self.minorFailCount = 0
         while True:
 	    self.cycle += 1
 	    self.seen_per_cycle = 0
@@ -176,7 +178,7 @@ class Slave(threading.Thread):
             #    self.restart()
             #    return
             try:
-		if (config.MAX_CYCLES_TILL_QUIT+1 <= self.cycle-self.failCount - self.minorFailCount):
+		if (config.MAX_CYCLES_TILL_QUIT+1 <= self.cycle-self.failCount):
 	    	    if self.error_code == None:
 			self.error_code = 'COMPLETE'
 		    else:
@@ -215,13 +217,6 @@ class Slave(threading.Thread):
 
 		self.main()
 
-            except MalformedResponse:
-                logger.warning('Malformed response received!')
-                self.error_code = 'MALFORMED'
-                #self.restart()
-                #return
-		self.minorFailCount = self.minorFailCount + 1
-		continue
             except BannedAccount:
         	logger.info(self.username + " appears to be banned")
 	        self.error_code = 'BANNED'
@@ -229,21 +224,18 @@ class Slave(threading.Thread):
                 #return
 		self.failCount = self.failCount + 1
 		continue
+	    # this only occurs if it is non fixable, fixable ones are handled where it was running
             except CaptchaAccount:
-            	progressMsg = '{progress:.0f}%'.format(progress=(self.step / float(self.count_points) * 100))
-        	logger.info(self.username + " appears to be captcha at " + progressMsg)
-	        self.error_code = 'CAPTCHA-' + progressMsg
-		username, password, service = utils.swapCaptchaWorker(self.worker_no, self.subNumber, self.numActiveAtOnce)
-		if (username == None and password == None and service == None):
 	                logger.info("Stopping worker as there appear to be no more accounts")
 			self.error_code = self.error_code + "-X"
 			return
-		else:
-			self.error_code = self.error_code + "-R"
-			logger.info("Found new account, restarting");
-	                self.minorFailCount = self.minorFailCount + 1 # remove this if I make it resume in the middle of the path
-			#self.restart(30, 90)
-			continue
+            except FunkyAccount:
+	                logger.info("Stopping worker as this account is being funky")
+			if self.error_code is None:
+				self.error_code = "FUNKY"
+			else:
+				self.error_code = self.error_code + "-F"
+			return
             except Exception:
                 logger.exception('A wild exception appeared!')
                 self.error_code = 'EXCEPTION'
@@ -322,6 +314,148 @@ class Slave(threading.Thread):
 		if (response_dict['responses']['CHECK_CHALLENGE']['challenge_url'] != u' '):
 			raise CaptchaAccount
     
+    def performMapOperations(self, i, point):
+            try:
+                if not self.running:
+                    return
+	
+		if self.minorFailCount > 6:
+			raise FunkyAccount
+
+	        if self.cycle == 1 and self.step == 0:
+		    time.sleep(1)
+	        else:   
+	            secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
+                    time.sleep(secondsBetween)
+
+         	    if (len(self.points) > 1):
+			    point1 = self.points[i]
+		    	    if (self.step == 0):
+	                	    point2 = self.points[len(self.points)-1]
+		    	    else:
+	                	    point2 = self.points[i-1]
+	
+		    	    speed = utils.get_speed_kmh(point1, point2, secondsBetween)
+			    while (speed > config.MAX_SPEED_KMH):
+			        moreSleep = random.uniform(.5,2.5)
+			        time.sleep(moreSleep)
+			        secondsBetween += moreSleep
+			        speed = utils.get_speed_kmh(point1, point2, secondsBetween)
+
+                logger.info('Visiting point %d (%s %s)', i, point[0], point[1])
+                self.api.set_position(point[0], point[1], 0)
+                cell_ids = pgoapi_utils.get_cell_ids(point[0], point[1])
+                #logger.info('Visiting point %d (%s %s) step 2', i, point[0], point[1])
+                #self.api.set_position(point[0], point[1], 10)
+                #logger.info('Visited point %d (%s %s) step 3', i, point[0], point[1])
+                req = self.api.create_request()
+	        response_dict = req.get_map_objects(
+                    latitude=pgoapi_utils.f2i(point[0]),
+                    longitude=pgoapi_utils.f2i(point[1]),
+                    cell_id=cell_ids
+                )
+	        response_dict = req.check_challenge()
+                response_dict = req.get_hatched_eggs()
+                response_dict = req.get_inventory()
+                response_dict = req.check_awarded_badges()
+                response_dict = req.download_settings()
+                response_dict = req.get_buddy_walked()
+                response_dict = req.call()
+	        self.checkResponseStatus(response_dict)
+                map_objects = response_dict['responses'].get('GET_MAP_OBJECTS', {})
+                pokemons = []
+                gyms = []
+                pokestops = []
+	        if map_objects.get('status') == 1:
+		    #logger.info("Status was 1")
+		    #logger.info("number of map objects returned: %d",len(map_objects))
+#		    logger.info(map_objects)
+                    for map_cell in map_objects['map_cells']:
+                        #logger.info(map_cell)
+		        for pokemon in map_cell.get('wild_pokemons', []):
+ 			    #logger.info(pokemon)
+                            # Care only about 15 min spawns
+                            # 30 and 45 min ones (negative) will be just put after
+                            # time_till_hidden is below 15 min
+                            # As of 2016.08.14 we don't know what values over
+                            # 60 minutes are, so ignore them too
+                            invalid_time = False#(
+                                #pokemon['time_till_hidden_ms'] < 0 or
+    #                            pokemon['time_till_hidden_ms'] > 900000
+     #                       )
+			    pokemon['time_logged'] = time.time()
+			    #logger.info("found pokemon. time remaining: %d, %d", pokemon['time_till_hidden_ms'], pokemon['time_logged'])
+                            if invalid_time:
+			        logger.error("pokemon had invalid time")
+                                continue
+			
+			    if config.ENCOUNTER == 1:
+			    	    self.encounter(pokemon, point, 0)
+			    else:
+				    pokemon['ATK_IV'] = -2
+		        	    pokemon['DEF_IV'] = -2
+		        	    pokemon['STA_IV'] = -2
+        	        	    pokemon['move_1'] = -2
+        		            pokemon['move_2'] = -2
+
+			    #logger.info("appending pokemon")
+                            pokemons.append(
+                                self.normalize_pokemon(
+                                    pokemon, map_cell['current_timestamp_ms']
+                                )
+                            )
+                        for fort in map_cell.get('forts', []):
+                            logger.info(fort)
+			    if not fort.get('enabled'):
+                                continue
+                            if fort.get('type') == 1:  # probably pokestops
+                                	pokestops.append(self.normalize_pokestop(fort, map_cell['current_timestamp_ms']))
+		            else:
+	                            gyms.append(self.normalize_gym(fort))
+                for raw_pokemon in pokemons:
+                    db.add_sighting(session, raw_pokemon)
+                    self.seen_per_cycle += 1
+                    self.total_seen += 1
+                for raw_gym in gyms:
+                    db.add_gym_sighting(session, raw_gym)
+                for raw_pokestop in pokestops:
+                    db.add_pokestop_sighting(session, raw_pokestop)
+                session.commit()
+                # Commit is not necessary here, it's done by add_gym_sighting
+                logger.info(
+                    'Point processed, %d Pokemons, %d gyms, and %d pokestops seen!',
+                    len(pokemons),
+                    len(gyms),
+		    len(pokestops)
+                )
+                # Clear error code and let know that there are Pokemon
+                if self.error_code and self.seen_per_cycle:
+                    self.error_code = None
+                self.step += 1
+            except MalformedResponse:
+                logger.warning('Malformed response received!')
+                self.error_code = 'MALFORMED'
+                #self.restart()
+                #return
+		self.minorFailCount = self.minorFailCount + 1
+		self.performMapOperations(i, point)
+
+            except CaptchaAccount:
+            	progressMsg = '{progress:.0f}%'.format(progress=(self.step / float(self.count_points) * 100))
+        	logger.warning(self.username + " appears to be captcha at " + progressMsg)
+	        self.error_code = 'CAPTCHA-' + progressMsg
+		username, password, service = utils.swapCaptchaWorker(self.worker_no, self.subNumber, self.numActiveAtOnce)
+		if (username == None and password == None and service == None):
+			# shoot, we are out of accounts.
+			raise CaptchaAccount
+		else:
+			self.error_code = self.error_code + "-R"
+			logger.info("Found new account, restarting");
+	                self.minorFailCount = self.minorFailCount + 1 # remove this if I make it resume in the middle of the path
+			#self.restart(30, 90)
+			self.performMapOperations(i, point)
+
+
 
     def main(self):
         """Heart of the worker - goes over each point and reports sightings"""
@@ -337,121 +471,12 @@ class Slave(threading.Thread):
     	startTime = time.time()
 #	logger.info("Starting scanning at: %s", time.asctime( time.localtime(startTime) ) )
 
+	self.minorFailCount = 0
         for i, point in enumerate(self.points):
-            if not self.running:
-                return
-	
-	    if self.cycle == 1 and self.step == 0:
-		time.sleep(1)
-	    else:   
-	        secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
-                time.sleep(secondsBetween)
+	    self.minorFailCount = 0
+	    self.performMapOperations(i,point)
 
-         	if (len(self.points) > 1):
-			point1 = self.points[i]
-		    	if (self.step == 0):
-	                	point2 = self.points[len(self.points)-1]
-		    	else:
-	                	point2 = self.points[i-1]
-	
-		    	speed = utils.get_speed_kmh(point1, point2, secondsBetween)
-			while (speed > config.MAX_SPEED_KMH):
-			    moreSleep = random.uniform(.5,2.5)
-			    time.sleep(moreSleep)
-			    secondsBetween += moreSleep
-			    speed = utils.get_speed_kmh(point1, point2, secondsBetween)
-
-            logger.info('Visiting point %d (%s %s)', i, point[0], point[1])
-            self.api.set_position(point[0], point[1], 0)
-            cell_ids = pgoapi_utils.get_cell_ids(point[0], point[1])
-            #logger.info('Visiting point %d (%s %s) step 2', i, point[0], point[1])
-            #self.api.set_position(point[0], point[1], 10)
-            #logger.info('Visited point %d (%s %s) step 3', i, point[0], point[1])
-            req = self.api.create_request()
-	    response_dict = req.get_map_objects(
-                latitude=pgoapi_utils.f2i(point[0]),
-                longitude=pgoapi_utils.f2i(point[1]),
-                cell_id=cell_ids
-            )
-	    response_dict = req.check_challenge()
-            response_dict = req.get_hatched_eggs()
-            response_dict = req.get_inventory()
-            response_dict = req.check_awarded_badges()
-            response_dict = req.download_settings()
-            response_dict = req.get_buddy_walked()
-            response_dict = req.call()
-	    self.checkResponseStatus(response_dict)
-            map_objects = response_dict['responses'].get('GET_MAP_OBJECTS', {})
-            pokemons = []
-            gyms = []
-            pokestops = []
-	    if map_objects.get('status') == 1:
-		#logger.info("Status was 1")
-		#logger.info("number of map objects returned: %d",len(map_objects))
-#		logger.info(map_objects)
-                for map_cell in map_objects['map_cells']:
-                    #logger.info(map_cell)
-		    for pokemon in map_cell.get('wild_pokemons', []):
- 			#logger.info(pokemon)
-                        # Care only about 15 min spawns
-                        # 30 and 45 min ones (negative) will be just put after
-                        # time_till_hidden is below 15 min
-                        # As of 2016.08.14 we don't know what values over
-                        # 60 minutes are, so ignore them too
-                        invalid_time = False#(
-                            #pokemon['time_till_hidden_ms'] < 0 or
-    #                        pokemon['time_till_hidden_ms'] > 900000
-     #                   )
-			pokemon['time_logged'] = time.time()
-			#logger.info("found pokemon. time remaining: %d, %d", pokemon['time_till_hidden_ms'], pokemon['time_logged'])
-                        if invalid_time:
-			    logger.error("pokemon had invalid time")
-                            continue
-			
-			if config.ENCOUNTER == 1:
-				self.encounter(pokemon, point, 0)
-			else:
-				pokemon['ATK_IV'] = -2
-		        	pokemon['DEF_IV'] = -2
-		        	pokemon['STA_IV'] = -2
-        	        	pokemon['move_1'] = -2
-        		        pokemon['move_2'] = -2
-
-			#logger.info("appending pokemon")
-                        pokemons.append(
-                            self.normalize_pokemon(
-                                pokemon, map_cell['current_timestamp_ms']
-                            )
-                        )
-                    for fort in map_cell.get('forts', []):
-                        logger.info(fort)
-			if not fort.get('enabled'):
-                            continue
-                        if fort.get('type') == 1:  # probably pokestops
-                            	pokestops.append(self.normalize_pokestop(fort, map_cell['current_timestamp_ms']))
-			else:
-	                        gyms.append(self.normalize_gym(fort))
-            for raw_pokemon in pokemons:
-                db.add_sighting(session, raw_pokemon)
-                self.seen_per_cycle += 1
-                self.total_seen += 1
-            for raw_gym in gyms:
-                db.add_gym_sighting(session, raw_gym)
-            for raw_pokestop in pokestops:
-                db.add_pokestop_sighting(session, raw_pokestop)
-            session.commit()
-            # Commit is not necessary here, it's done by add_gym_sighting
-            logger.info(
-                'Point processed, %d Pokemons, %d gyms, and %d pokestops seen!',
-                len(pokemons),
-                len(gyms),
-		len(pokestops)
-            )
-            # Clear error code and let know that there are Pokemon
-            if self.error_code and self.seen_per_cycle:
-                self.error_code = None
-            self.step += 1
-    	endTime = time.time()
+        endTime = time.time()
 #        logger.info("Stopped scanning at: %s", time.asctime( time.localtime(endTime) ) )
 	timeElapsed = endTime - startTime
 	minutes = timeElapsed/60
