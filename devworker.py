@@ -390,7 +390,8 @@ class Slave(threading.Thread):
 		#logger.info("number of map objects returned: %d",len(map_objects))
 #		logger.info(map_objects)
                 for map_cell in map_objects['map_cells']:
-                    for pokemon in map_cell.get('wild_pokemons', []):
+                    #logger.info(map_cell)
+		    for pokemon in map_cell.get('wild_pokemons', []):
  			#logger.info(pokemon)
                         # Care only about 15 min spawns
                         # 30 and 45 min ones (negative) will be just put after
@@ -423,12 +424,11 @@ class Slave(threading.Thread):
                             )
                         )
                     for fort in map_cell.get('forts', []):
-                        print fort
+                        logger.info(fort)
 			if not fort.get('enabled'):
                             continue
                         if fort.get('type') == 1:  # probably pokestops
-                            	#pokestops.append(self.normalize_pokestop(fort))
-				continue
+                            	pokestops.append(self.normalize_pokestop(fort, map_cell['current_timestamp_ms']))
 			else:
 	                        gyms.append(self.normalize_gym(fort))
             for raw_pokemon in pokemons:
@@ -495,16 +495,14 @@ class Slave(threading.Thread):
         }
 
     @staticmethod
-    def normalize_pokestop(raw):
+    def normalize_pokestop(raw, now):
         return {
             'external_id': raw['id'],
             'lat': raw['latitude'],
             'lon': raw['longitude'],
-            'team': raw.get('owned_by_team', 0),
-            'prestige': raw.get('gym_points', 0),
-            'guard_pokemon_id': raw.get('guard_pokemon_id', 0),
             'last_modified': raw['last_modified_timestamp_ms'] / 1000.0,
-        }
+            'time_now': now / 1000.0,
+	}
 
     @property
     def status(self):

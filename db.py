@@ -179,6 +179,15 @@ class FortSighting(Base):
         ),
     )
 
+class Pokestop(Base):
+    __tablename__ = 'pokestops'
+
+    id = Column(Integer, primary_key=True)
+    external_id = Column(String(64), unique=True)
+    lat = Column(String(20), index=True)
+    lon = Column(String(20), index=True)
+    first_seen = Column(Integer)
+    last_seen = Column(Integer)
 
 Session = sessionmaker(bind=get_engine())
 
@@ -246,6 +255,28 @@ def add_sighting(session, pokemon):
     session.add(obj)
     SIGHTING_CACHE.add(pokemon)
 
+def add_pokestop_sighting(session, raw_pokestop):
+    pokestop = session.query(Pokestop) \
+        .filter(Pokestop.external_id == raw_pokestop['external_id']) \
+        .filter(Pokestop.lat == raw_pokestop['lat']) \
+        .filter(Pokestop.lon == raw_pokestop['lon']) \
+        .first()
+    if pokestop:
+        pokestop.last_seen=raw_pokestop['time_now']
+    else:
+        pokestop = Pokestop(
+            external_id=raw_pokestop['external_id'],
+            lat=raw_pokestop['lat'],
+            lon=raw_pokestop['lon'],
+            first_seen=raw_pokestop['time_now'],            
+            last_seen=raw_pokestop['time_now'],            
+        )
+        session.add(pokestop)
+    try:
+        session.commit()
+    except IntegrityError:  # skip adding fort this time
+        session.rollback()
+	
 
 def add_gym_sighting(session, raw_fort):
     if raw_fort in FORT_CACHE:

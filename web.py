@@ -126,7 +126,10 @@ def get_pokemarkers():
         pokemons = db.get_sightings(session)
     else:
 	pokemons = db.get_sightings_after(session, args.after)
+    
     forts = db.get_forts(session)
+    #pokestops = db.get_pokestops(session)
+
     session.close()
 
     for pokemon in pokemons:
