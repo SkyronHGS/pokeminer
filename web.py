@@ -128,7 +128,7 @@ def get_pokemarkers():
 	pokemons = db.get_sightings_after(session, args.after)
     
     forts = db.get_forts(session)
-    #pokestops = db.get_pokestops(session)
+    pokestops = db.get_pokestops(session)
 
     session.close()
 
@@ -159,6 +159,15 @@ def get_pokemarkers():
             'lat': fort['lat'],
             'lon': fort['lon'],
         })
+
+    for pokestop in pokestops:
+        markers.append({
+            'id': 'stop-{}'.format(pokestop['id']),
+            'type': 'pokestop',
+            'lat': pokestop['lat'],
+            'lon': pokestop['lon'],
+        })
+        
 
     return markers
 

@@ -333,6 +333,18 @@ def get_sightings(session):
         .filter(Sighting.time_logged+(30*60) > time.time()) \
         .all()
 
+def get_pokestops(session):
+    query = session.execute('''
+        SELECT
+                s.id,
+                s.lat,
+                s.lon,
+		s.first_seen,
+		s.last_seen
+	    FROM pokestops s
+    ''')
+    return query.fetchall() 
+
 
 def get_forts(session):
     if get_engine_name(session) == 'sqlite':
