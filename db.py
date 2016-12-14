@@ -272,11 +272,6 @@ def add_pokestop_sighting(session, raw_pokestop):
             last_seen=raw_pokestop['time_now'],            
         )
         session.add(pokestop)
-    try:
-        session.commit()
-    except IntegrityError:  # skip adding fort this time
-        session.rollback()
-	
 
 def add_gym_sighting(session, raw_fort):
     if raw_fort in FORT_CACHE:
@@ -314,12 +309,6 @@ def add_gym_sighting(session, raw_fort):
         last_modified=raw_fort['last_modified'],
     )
     session.add(obj)
-    try:
-        session.commit()
-    except IntegrityError:  # skip adding fort this time
-        session.rollback()
-    else:
-        FORT_CACHE.add(raw_fort)
 
 def get_sightings_after(session, timeAfter):
     logger.info("gettings sightings")

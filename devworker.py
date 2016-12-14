@@ -9,6 +9,8 @@ import threading
 import time
 import math
 
+from sqlalchemy.exc import IntegrityError
+
 from pgoapi import (
     exceptions as pgoapi_exceptions,
     PGoApi,
@@ -435,11 +437,11 @@ class Slave(threading.Thread):
                 db.add_sighting(session, raw_pokemon)
                 self.seen_per_cycle += 1
                 self.total_seen += 1
-            session.commit()
             for raw_gym in gyms:
                 db.add_gym_sighting(session, raw_gym)
             for raw_pokestop in pokestops:
                 db.add_pokestop_sighting(session, raw_pokestop)
+            session.commit()
             # Commit is not necessary here, it's done by add_gym_sighting
             logger.info(
                 'Point processed, %d Pokemons, %d gyms, and %d pokestops seen!',
