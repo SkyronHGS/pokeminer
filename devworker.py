@@ -333,8 +333,8 @@ class Slave(threading.Thread):
 
 	#self.checkResponseStatus()
 
-	secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
-        time.sleep(secondsBetween)
+	#secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
+        #time.sleep(secondsBetween)
 	
     	startTime = time.time()
 #	logger.info("Starting scanning at: %s", time.asctime( time.localtime(startTime) ) )
@@ -342,16 +342,14 @@ class Slave(threading.Thread):
         for i, point in enumerate(self.points):
             if not self.running:
                 return
-	    secondsBetween = 0
 	    
 	    secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
             time.sleep(secondsBetween)
 	    if (len(self.points) > 1):
+		point1 = self.points[i]
 	    	if (self.step == 0):
-			point1 = self.points[i]
                 	point2 = self.points[len(self.points)-1]
 	    	else:
-       	        	point1 = self.points[i]
                 	point2 = self.points[i-1]
 
 	    	speed = utils.get_speed_kmh(point1, point2, secondsBetween)
@@ -360,6 +358,9 @@ class Slave(threading.Thread):
 		    time.sleep(moreSleep)
 		    secondsBetween += moreSleep
 		    speed = utils.get_speed_kmh(point1, point2, secondsBetween)
+	    else:
+		secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
+                time.sleep(secondsBetween)
 		
             logger.info('Visiting point %d (%s %s)', i, point[0], point[1])
             self.api.set_position(point[0], point[1], 0)
