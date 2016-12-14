@@ -290,6 +290,11 @@ def add_fort_sighting(session, raw_fort):
     else:
         FORT_CACHE.add(raw_fort)
 
+def get_sightings_after(session, timeAfter):
+    logger.info("gettings sightings")
+    return session.query(Sighting) \
+        .filter(Sighting.time_logged > timeAfter) \
+        .all()
 
 def get_sightings(session):
     logger.info("gettings sightings")
