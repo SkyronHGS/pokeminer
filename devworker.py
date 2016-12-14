@@ -9,8 +9,6 @@ import threading
 import time
 import math
 
-from sqlalchemy.exc import IntegrityError
-
 from pgoapi import (
     exceptions as pgoapi_exceptions,
     PGoApi,
