@@ -383,8 +383,9 @@ class Slave(threading.Thread):
 	    self.checkResponseStatus(response_dict)
             map_objects = response_dict['responses'].get('GET_MAP_OBJECTS', {})
             pokemons = []
-            forts = []
-            if map_objects.get('status') == 1:
+            gyms = []
+            pokestops = []
+	    if map_objects.get('status') == 1:
 		#logger.info("Status was 1")
 		#logger.info("number of map objects returned: %d",len(map_objects))
 #		logger.info(map_objects)
@@ -422,23 +423,29 @@ class Slave(threading.Thread):
                             )
                         )
                     for fort in map_cell.get('forts', []):
-                        if not fort.get('enabled'):
+                        print fort
+			if not fort.get('enabled'):
                             continue
                         if fort.get('type') == 1:  # probably pokestops
-                            continue
-                        forts.append(self.normalize_fort(fort))
+                            	#pokestops.append(self.normalize_pokestop(fort))
+				continue
+			else:
+	                        gyms.append(self.normalize_gym(fort))
             for raw_pokemon in pokemons:
                 db.add_sighting(session, raw_pokemon)
                 self.seen_per_cycle += 1
                 self.total_seen += 1
             session.commit()
-            #for raw_fort in forts:
-            #    db.add_fort_sighting(session, raw_fort)
-            # Commit is not necessary here, it's done by add_fort_sighting
+            for raw_gym in gyms:
+                db.add_gym_sighting(session, raw_gym)
+            for raw_pokestop in pokestops:
+                db.add_pokestop_sighting(session, raw_pokestop)
+            # Commit is not necessary here, it's done by add_gym_sighting
             logger.info(
-                'Point processed, %d Pokemons and %d forts seen!',
+                'Point processed, %d Pokemons, %d gyms, and %d pokestops seen!',
                 len(pokemons),
-                len(forts),
+                len(gyms),
+		len(pokestops)
             )
             # Clear error code and let know that there are Pokemon
             if self.error_code and self.seen_per_cycle:
@@ -476,7 +483,19 @@ class Slave(threading.Thread):
 	}
 
     @staticmethod
-    def normalize_fort(raw):
+    def normalize_gym(raw):
+        return {
+            'external_id': raw['id'],
+            'lat': raw['latitude'],
+            'lon': raw['longitude'],
+            'team': raw.get('owned_by_team', 0),
+            'prestige': raw.get('gym_points', 0),
+            'guard_pokemon_id': raw.get('guard_pokemon_id', 0),
+            'last_modified': raw['last_modified_timestamp_ms'] / 1000.0,
+        }
+
+    @staticmethod
+    def normalize_pokestop(raw):
         return {
             'external_id': raw['id'],
             'lat': raw['latitude'],
