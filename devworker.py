@@ -233,9 +233,7 @@ class Slave(threading.Thread):
             	progressMsg = '{progress:.0f}%'.format(progress=(self.step / float(self.count_points) * 100))
         	logger.info(self.username + " appears to be captcha at " + progressMsg)
 	        self.error_code = 'CAPTCHA-' + progressMsg
-		logger.info("1")
 		username, password, service = utils.swapCaptchaWorker(self.worker_no, self.subNumber, self.numActiveAtOnce)
-		logger.info("2")
 		if (username == None and password == None and service == None):
 	                logger.info("Stopping worker as there appear to be no more accounts")
 			self.error_code = self.error_code + "-X"
@@ -342,26 +340,27 @@ class Slave(threading.Thread):
         for i, point in enumerate(self.points):
             if not self.running:
                 return
-	    
-	    secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
-            time.sleep(secondsBetween)
-	    if (len(self.points) > 1):
-		point1 = self.points[i]
-	    	if (self.step == 0):
-                	point2 = self.points[len(self.points)-1]
-	    	else:
-                	point2 = self.points[i-1]
-
-	    	speed = utils.get_speed_kmh(point1, point2, secondsBetween)
-		while (speed > config.MAX_SPEED_KMH):
-		    moreSleep = random.uniform(.5,2.5)
-		    time.sleep(moreSleep)
-		    secondsBetween += moreSleep
-		    speed = utils.get_speed_kmh(point1, point2, secondsBetween)
-	    else:
-		secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
+	
+	    if self.cycle == 1 and self.step == 0:
+		time.sleep(1)
+	    else:   
+	        secondsBetween = random.uniform(config.MIN_SCAN_DELAY, config.MIN_SCAN_DELAY + 2)
                 time.sleep(secondsBetween)
-		
+
+         	if (len(self.points) > 1):
+			point1 = self.points[i]
+		    	if (self.step == 0):
+	                	point2 = self.points[len(self.points)-1]
+		    	else:
+	                	point2 = self.points[i-1]
+	
+		    	speed = utils.get_speed_kmh(point1, point2, secondsBetween)
+			while (speed > config.MAX_SPEED_KMH):
+			    moreSleep = random.uniform(.5,2.5)
+			    time.sleep(moreSleep)
+			    secondsBetween += moreSleep
+			    speed = utils.get_speed_kmh(point1, point2, secondsBetween)
+
             logger.info('Visiting point %d (%s %s)', i, point[0], point[1])
             self.api.set_position(point[0], point[1], 0)
             cell_ids = pgoapi_utils.get_cell_ids(point[0], point[1])
