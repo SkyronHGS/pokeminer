@@ -247,7 +247,7 @@ def add_sighting(session, pokemon):
     SIGHTING_CACHE.add(pokemon)
 
 
-def add_fort_sighting(session, raw_fort):
+def add_gym_sighting(session, raw_fort):
     if raw_fort in FORT_CACHE:
         return
     # Check if fort exists
