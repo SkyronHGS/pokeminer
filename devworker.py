@@ -241,12 +241,11 @@ class Slave(threading.Thread):
                 self.error_code = 'EXCEPTION'
                 #self.restart()
                 #return
-		self.minorFailCount = self.minorFailCount + 1
+		self.failCount = self.failCount + 1
 		continue
             #if not self.running:
             #    self.restart()
             #    return
-	    self.minorFailCount = 0
 	    self.failCount = 0
             #if self.cycle <= config.CYCLES_PER_WORKER:
             #    logger.info('Going to sleep for a bit')
@@ -314,7 +313,7 @@ class Slave(threading.Thread):
 		if (response_dict['responses']['CHECK_CHALLENGE']['challenge_url'] != u' '):
 			raise CaptchaAccount
     
-    def performMapOperations(self, i, point):
+    def performMapOperations(self, i, point, session):
             try:
                 if not self.running:
                     return
@@ -405,7 +404,7 @@ class Slave(threading.Thread):
                                 )
                             )
                         for fort in map_cell.get('forts', []):
-                            logger.info(fort)
+                     #       logger.info(fort)
 			    if not fort.get('enabled'):
                                 continue
                             if fort.get('type') == 1:  # probably pokestops
@@ -438,7 +437,7 @@ class Slave(threading.Thread):
                 #self.restart()
                 #return
 		self.minorFailCount = self.minorFailCount + 1
-		self.performMapOperations(i, point)
+		self.performMapOperations(i, point, session)
 
             except CaptchaAccount:
             	progressMsg = '{progress:.0f}%'.format(progress=(self.step / float(self.count_points) * 100))
@@ -453,7 +452,21 @@ class Slave(threading.Thread):
 			logger.info("Found new account, restarting");
 	                self.minorFailCount = self.minorFailCount + 1 # remove this if I make it resume in the middle of the path
 			#self.restart(30, 90)
-			self.performMapOperations(i, point)
+
+
+			for x in range(0, 6):
+		            	success = self.login(subNumber, self.numActiveAtOnce)
+		 		if success:
+					break
+				else:
+					logger.warning("Failed logging into " + self.username)
+			    		sleep(3)
+			if not success:
+				raise FunkyAccount
+			
+			logger.info("Logged into: " + self.username)		
+
+			self.performMapOperations(i, point, session)
 
 
 
@@ -474,7 +487,7 @@ class Slave(threading.Thread):
 	self.minorFailCount = 0
         for i, point in enumerate(self.points):
 	    self.minorFailCount = 0
-	    self.performMapOperations(i,point)
+	    self.performMapOperations(i, point, session)
 
         endTime = time.time()
 #        logger.info("Stopped scanning at: %s", time.asctime( time.localtime(endTime) ) )
