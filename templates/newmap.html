@@ -42,6 +42,12 @@
             background: #fff;
             box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
         }
+        .stop-icon {
+            border-radius: 12px;
+            padding: 2px;
+            background: #fff;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        }            
         .leaflet-control-layers-toggle {
             background-image: url(/static/img/layers.png);
         }
@@ -70,6 +76,13 @@
                 className: 'fort-icon'
             }
         });
+        var PokestopIcon = L.Icon.extend({
+            options: {
+                iconSize: [20, 20],
+                popupAnchor: [0, -10],
+                className: 'pokestop-icon'
+            }
+        });
 
         function getMarkers () {
             return new Promise(function (resolve, reject) {
@@ -84,6 +97,7 @@
             Pokemon: L.layerGroup([]),
             Trash: L.layerGroup([]),
             Gyms: L.layerGroup([]),
+            Pokestops: L.layerGroup([]),
             Workers: L.layerGroup([])
         };
 
@@ -157,6 +171,17 @@
             marker.bindPopup();
             return marker;
         }
+        function PokestopMarker (raw) {
+            var icon = new PokestopIcon({iconUrl: '/static/forts/pokestop.png'});
+            var marker = L.marker([raw.lat, raw.lon], {icon: icon, opacity: 1});
+            marker.raw = raw;
+            markers[raw.id] = marker;
+            marker.on('popupopen',function popupopen (event) {
+                event.popup.setContent('Pokestop!');
+            });
+            marker.bindPopup();
+            return marker;
+        }
 
         function addMarkersToMap (data, map) {
             // Pokemons
@@ -173,7 +198,7 @@
                     } else {
                         marker.addTo(overlays.Pokemon);
                     }
-                } else {
+                } else if (item.type === 'fort') {
                     // No change since last time? Then don't do anything
                     var existing = markers[item.id];
                     if (typeof existing !== 'undefined') {
@@ -185,7 +210,14 @@
                     }
                     marker = FortMarker(item);
                     marker.addTo(overlays.Gyms);
-                }
+                } else if (item.type === 'pokestop') {
+                    // No change since last time? Then don't do anything
+                    var existing = markers[item.id];
+                    if (typeof existing === 'undefined') {
+	                    marker = PokestopMarker(item);
+	                    marker.addTo(overlays.Pokestops);
+                    }
+                 }
             });
         }
 
