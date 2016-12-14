@@ -322,7 +322,7 @@ class Slave(threading.Thread):
             raise MalformedResponse
 	if 'challenge_url' in response_dict['responses']['CHECK_CHALLENGE']:
 		if (response_dict['responses']['CHECK_CHALLENGE']['challenge_url'] != u' '):
-		raise CaptchaAccount
+			raise CaptchaAccount
     
 
     def main(self):

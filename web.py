@@ -48,6 +48,13 @@ def get_args():
     parser.add_argument(
         '-d', '--debug', help='Debug Mode', action='store_true'
     )
+    parser.add_argument(
+        '-A',
+        '--after',
+        type=int,
+        help='Get all sightings after a certain time',
+        default=0
+    )
     parser.set_defaults(DEBUG=True)
     return parser.parse_args()
 
@@ -114,7 +121,11 @@ def get_pokeDiscord():
 def get_pokemarkers():
     markers = []
     session = db.Session()
-    pokemons = db.get_sightings(session)
+    
+    if args.after == 0: 
+        pokemons = db.get_sightings(session)
+    else:
+	pokemons = db.get_sightings_after(session, args.after)
     forts = db.get_forts(session)
     session.close()
 
