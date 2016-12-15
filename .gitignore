@@ -13,3 +13,4 @@ node_modules/
 *.save
 pokecrypt-pgoapi/
 src/
+printCaptchad.sh
