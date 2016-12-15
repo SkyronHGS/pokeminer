@@ -314,7 +314,8 @@ class Slave(threading.Thread):
 			raise CaptchaAccount
     
     def performMapOperations(self, i, point, session):
-            try:
+            self.error_code = None
+	    try:
                 if not self.running:
                     return
 	
@@ -415,11 +416,16 @@ class Slave(threading.Thread):
                     db.add_sighting(session, raw_pokemon)
                     self.seen_per_cycle += 1
                     self.total_seen += 1
+                session.commit()
                 for raw_gym in gyms:
                     db.add_gym_sighting(session, raw_gym)
                 for raw_pokestop in pokestops:
                     db.add_pokestop_sighting(session, raw_pokestop)
-                session.commit()
+		try:
+		        session.commit()
+		except IntegrityError:  # skip adding fort this time
+			session.rollback()
+
                 # Commit is not necessary here, it's done by add_gym_sighting
                 logger.info(
                     'Point processed, %d Pokemons, %d gyms, and %d pokestops seen!',
@@ -455,7 +461,7 @@ class Slave(threading.Thread):
 
 
 			for x in range(0, 6):
-		            	success = self.login(subNumber, self.numActiveAtOnce)
+		            	success = self.login(self.subNumber, self.numActiveAtOnce)
 		 		if success:
 					break
 				else:

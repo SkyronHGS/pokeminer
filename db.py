@@ -189,7 +189,7 @@ class Pokestop(Base):
     first_seen = Column(Integer)
     last_seen = Column(Integer)
 
-Session = sessionmaker(bind=get_engine())
+Session = sessionmaker(bind=get_engine(), autoflush=False)
 
 
 def normalize_timestamp(timestamp):
