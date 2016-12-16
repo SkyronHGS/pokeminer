@@ -331,7 +331,8 @@ def get_pokestops(session):
 		s.first_seen,
 		s.last_seen
 	    FROM pokestops s
-    ''')
+    '''
+    )
     return query.fetchall() 
 
 
@@ -366,7 +367,8 @@ def get_forts(session):
         FROM fort_sightings fs
         JOIN forts f ON f.id=fs.fort_id
         {where}
-    '''.format(where=where))
+    '''
+    .format(where=where))
     return query.fetchall()
 
 
@@ -409,7 +411,8 @@ def get_punch_card(session):
         {report_since}
         GROUP BY ts_date
         ORDER BY ts_date
-    '''.format(bigint=bigint, report_since=get_since_query_part()))
+    '''
+    .format(bigint=bigint, report_since=get_since_query_part()))
     results = query.fetchall()
     results_dict = {r[0]: r[1] for r in results}
     filled = []
@@ -429,7 +432,8 @@ def get_top_pokemon(session, count=30, order='DESC'):
         GROUP BY pokemon_id
         ORDER BY how_many {order}
         LIMIT {count}
-    '''.format(order=order, count=count, report_since=get_since_query_part()))
+    '''
+    .format(order=order, count=count, report_since=get_since_query_part()))
     return query.fetchall()
 
 
@@ -453,7 +457,8 @@ def get_nonexistent_pokemon(session):
     query = session.execute('''
         SELECT DISTINCT pokemon_id FROM sightings
         {report_since}
-    '''.format(report_since=get_since_query_part()))
+    '''
+    .format(report_since=get_since_query_part()))
     db_ids = [r[0] for r in query.fetchall()]
     for pokemon_id in range(1, 152):
         if pokemon_id not in db_ids:
@@ -484,7 +489,8 @@ def get_spawns_per_hour(session, pokemon_id):
         {report_since}
         GROUP BY ts_hour
         ORDER BY ts_hour
-    '''.format(
+    '''
+    .format(
         pokemon_id=pokemon_id,
         ts_hour=ts_hour,
         report_since=get_since_query_part(where=False)
@@ -536,7 +542,8 @@ def get_spawns_per_minute(session, pokemon_id=None):
             lon,
             ts_hour,
             ts_minute
-    '''.format(
+    '''
+    .format(
         filter_for_pokemon=filter_for_pokemon,
         ts_hour=ts_hour,
         ts_minute=ts_minute,
@@ -578,6 +585,27 @@ def get_all_spawn_coords(session, pokemon_id=None):
     points = points.group_by(Sighting.lat, Sighting.lon)
     return points.all()
 
+
+def get_timings_between_lat_lon(session, lat1, lat2, lon1, lon2):
+    if lat1 > lat2:
+        temp = lat1
+        lat1 = lat2
+        lat2 = temp
+    if lon1 > lon2:
+        temp = lon1
+        lon1 = lon2
+        lon2 = temp
+
+    query = session.execute("""
+        SELECT time_logged
+        FROM sightings
+	WHERE 
+		lat >= {lat1} and
+		lat <= {lat2} and
+		lon >= {lon1} and
+		lon <= {lon2}		
+    """.format(lat1=lat1,lat2=lat2,lon1=lon1,lon2=lon2))
+    return query.fetchall()
 
 if __name__ == '__main__':
     args = parse_args()

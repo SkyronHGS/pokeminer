@@ -1,0 +1,14 @@
+import time
+import db
+
+if __name__ == '__main__':
+
+    session = db.Session()
+    
+    # change the last 4 variables here to actual values
+    result = db.get_timings_between_lat_lon(session, LAT_1, LAT_2, LON_1, LON_2)
+    session.close()
+
+    for i,val in enumerate(result):
+	extractedTime = val[0]
+	print time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(extractedTime))	
