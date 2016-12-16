@@ -210,7 +210,7 @@ class Slave(threading.Thread):
 
          	if not success:
 		    self.failCount = self.failCount + 1
-		    sleep(3)
+		    time.sleep(3)
 		    continue
 
 		logger.info("Logged into: " + self.username)		
@@ -466,7 +466,7 @@ class Slave(threading.Thread):
 					break
 				else:
 					logger.warning("Failed logging into " + self.username)
-			    		sleep(3)
+			    		time.sleep(3)
 			if not success:
 				raise FunkyAccount
 			
