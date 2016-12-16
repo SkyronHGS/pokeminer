@@ -597,13 +597,15 @@ def get_timings_between_lat_lon(session, lat1, lat2, lon1, lon2):
         lon2 = temp
 
     query = session.execute("""
-        SELECT time_logged
+        SELECT lat, lon, time_logged
         FROM sightings
 	WHERE 
 		lat >= {lat1} and
 		lat <= {lat2} and
 		lon >= {lon1} and
 		lon <= {lon2}		
+	GROUP BY
+		lat, lon
     """.format(lat1=lat1,lat2=lat2,lon1=lon1,lon2=lon2))
     return query.fetchall()
 

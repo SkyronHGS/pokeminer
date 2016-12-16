@@ -10,5 +10,8 @@ if __name__ == '__main__':
     session.close()
 
     for i,val in enumerate(result):
-	extractedTime = val[0]
-	print time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(extractedTime))	
+        print val
+        extractedTime = val[2]
+        print time.strftime('%M', time.localtime(extractedTime))
+
+
