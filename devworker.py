@@ -15,6 +15,8 @@ from pgoapi import (
     utilities as pgoapi_utils,
 )
 
+from sqlalchemy.exc import IntegrityError
+
 import config
 import db
 import utils
