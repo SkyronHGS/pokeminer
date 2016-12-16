@@ -604,8 +604,6 @@ def get_timings_between_lat_lon(session, lat1, lat2, lon1, lon2):
 		lat <= {lat2} and
 		lon >= {lon1} and
 		lon <= {lon2}		
-	GROUP BY
-		lat, lon
     """.format(lat1=lat1,lat2=lat2,lon1=lon1,lon2=lon2))
     return query.fetchall()
 

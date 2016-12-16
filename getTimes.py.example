@@ -1,17 +1,63 @@
 import time
 import db
+import config
+
+# Check whether config has all necessary attributes
+REQUIRED_SETTINGS = (
+    'DB_ENGINE',
+    'KNOWN_NEST_MIGRATIONS',
+)
+for setting_name in REQUIRED_SETTINGS:
+    if not hasattr(config, setting_name):
+        raise RuntimeError('Please set "{}" in config'.format(setting_name))
 
 if __name__ == '__main__':
 
     session = db.Session()
-    
+
     # change the last 4 variables here to actual values
     result = db.get_timings_between_lat_lon(session, LAT_1, LAT_2, LON_1, LON_2)
+
     session.close()
 
+    listOfAllTimesScanned = []
+    currentList = [0] * 60
+
+    currentMigrationIndex = -1
+    maxMigrationIndex = len(config.KNOWN_NEST_MIGRATIONS) - 1
+
+    # will be -1 if empty
+    if maxMigrationIndex > -1:
+        currentMigrationIndex = 0
+        currentMigrationTime = config.KNOWN_NEST_MIGRATIONS[currentMigrationIndex]
+        maxMigrationTime = config.KNOWN_NEST_MIGRATIONS[maxMigrationIndex-1]
+
+    currentListChanged = False
+
     for i,val in enumerate(result):
-        print val
-        extractedTime = val[2]
-        print time.strftime('%M', time.localtime(extractedTime))
+#	print val
+	extractedTime = val[2]
+	
+	while extractedTime > currentMigrationTime and currentMigrationIndex < maxMigrationIndex and maxMigrationIndex > -1:
+            
+            # this would only occur before we enter our first data, when we have migrations happening before our data starts
+            if currentListChanged:
+                listOfAllTimesScanned.append(currentList)
+                currentList = [0] * 60
+            currentMigrationIndex = currentMigrationIndex + 1
+            currentMigrationTime = config.KNOWN_NEST_MIGRATIONS[currentMigrationIndex]
+                        
+        currentListChanged = True
 
+	minuteVal = int(float(time.strftime('%M', time.localtime(extractedTime))))	
+	#currentList.append(minuteVal)
+	currentList[minuteVal] = currentList[minuteVal] + 1
 
+    if len(currentList) > 0:
+        listOfAllTimesScanned.append(currentList) 
+
+    print "Results:"
+    for listOfTimes in listOfAllTimesScanned:
+        print "-" * 30
+        for time, count in enumerate(listOfTimes):
+            print "{time}: {count}".format(time=time,count=count)
