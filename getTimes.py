@@ -60,7 +60,7 @@ if __name__ == '__main__':
 	minuteVal = int(float(time.strftime('%M', time.localtime(extractedTime))))	
 
         for migrationTime in config.KNOWN_NEST_MIGRATIONS:
-            if extractedTime > migrationTime:                
+            if extractedTime >= migrationTime:                
                 keyForDict = migrationTime
             else:
                 break
