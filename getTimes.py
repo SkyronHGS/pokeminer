@@ -18,31 +18,32 @@ def get_args():
         '--lat1',
         type=float,
         help='Latitude 1',
+        default=-90
     )
     parser.add_argument(
         '--lat2',
         type=float,
         help='Latitude 2',
+        default=90
     )
     parser.add_argument(
         '--lon1',
         type=float,
         help='Longitude 1',
+        default=-180
     )
     parser.add_argument(
         '--lon2',
         type=float,
         help='Longitude 2',
+        default=180
     )
+
     return parser.parse_args()
 
 if __name__ == '__main__':
 
     args = get_args()
-
-    if args.lat1 is None or args.lat2 is None or args.lon1 is None or args.lon2 is None:
-        print "Please set all args"
-        exit(-1)
 
     session = db.Session()
     result = db.get_timings_between_lat_lon(session, args.lat1, args.lat2, args.lon1, args.lon2)
@@ -58,18 +59,11 @@ if __name__ == '__main__':
 
 	minuteVal = int(float(time.strftime('%M', time.localtime(extractedTime))))	
 
-	print ""
         for migrationTime in config.KNOWN_NEST_MIGRATIONS:
-	    print "logged time then migration time"
-	    print extractedTime
-	    print migrationTime
             if extractedTime > migrationTime:                
                 keyForDict = migrationTime
             else:
                 break
-
-	print "using for migration time"
-	print keyForDict
 
         strConverted = str(keyForDict)
 	listOfAllMigrations[strConverted][minuteVal] = listOfAllMigrations[strConverted][minuteVal] + 1
