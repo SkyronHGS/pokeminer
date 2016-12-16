@@ -13,19 +13,20 @@ DISABLE_WORKERS = []
 SCAN_DELAY = 10  # seconds
 PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
 
-SLEEP = 0
-ENCOUNTER = 0
-
 MAX_CYCLES_TILL_QUIT = 1
 
+SLEEP = 0
+MAX_TIME_AWAKE = 900 # seconds
+MIN_TIME_ASLEEP = 900 # seconds
+
+ENCOUNTER = 0
 ENCOUNTER_DELAY = 1 # seconds
+
+
 MIN_SCAN_DELAY = 20  # seconds
 MAX_SPEED_KMH = 25
 FREQUENCY_OF_POINT_RESCAN_SECS = 450
 ERROR_PERCENTAGE = 20
-
-MAX_TIME_AWAKE = 900 # seconds
-MIN_TIME_ASLEEP = 900 # seconds
 
 SCAN_RADIUS = 70  # metres
 
@@ -47,3 +48,5 @@ REPORT_SINCE = datetime(2016, 7, 29)
 GOOGLE_MAPS_KEY = 's3cr3t'
 MAP_PROVIDER_URL = '//{s}.tile.osm.org/{z}/{x}/{y}.png'
 MAP_PROVIDER_ATTRIBUTION = '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+
+KNOWN_NEST_MIGRATIONS = [ 1474588800, 1475798400, 1477008000, 1478217600, 1479427200, 1480636800, 1481846400 ]
