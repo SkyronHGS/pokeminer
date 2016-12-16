@@ -48,53 +48,38 @@ if __name__ == '__main__':
     result = db.get_timings_between_lat_lon(session, args.lat1, args.lat2, args.lon1, args.lon2)
     session.close()
 
-    listOfAllTimesScanned = []
-    currentList = [0] * 61
+    listOfAllMigrations = {}
 
-    currentMigrationIndex = -1
-    maxMigrationIndex = len(config.KNOWN_NEST_MIGRATIONS) - 1
-
-    # will be -1 if empty
-    if maxMigrationIndex > -1:
-        currentMigrationIndex = 0
-        currentMigrationTime = config.KNOWN_NEST_MIGRATIONS[currentMigrationIndex]
-        maxMigrationTime = config.KNOWN_NEST_MIGRATIONS[maxMigrationIndex-1]
-
-    currentListChanged = False
+    for migrationTime in config.KNOWN_NEST_MIGRATIONS:
+        listOfAllMigrations[str(migrationTime)] = [0] * 61
 
     for i,val in enumerate(result):
-#	print val
 	extractedTime = val[2]
-	
-	while extractedTime > currentMigrationTime and currentMigrationIndex < maxMigrationIndex and maxMigrationIndex > -1:
-            
-            # this would only occur before we enter our first data, when we have migrations happening before our data starts
-            if currentListChanged:
-                currentList[60] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(currentMigrationTime))
-                listOfAllTimesScanned.append(currentList)
-            currentList = [0] * 61
-            currentMigrationIndex = currentMigrationIndex + 1
-            currentMigrationTime = config.KNOWN_NEST_MIGRATIONS[currentMigrationIndex]
-                        
-        currentListChanged = True
 
 	minuteVal = int(float(time.strftime('%M', time.localtime(extractedTime))))	
-	#currentList.append(minuteVal)
-	currentList[minuteVal] = currentList[minuteVal] + 1
 
-    lastListChanged = False
-    for i,val in enumerate(result):
-        if i < 60 and val > 0:
-            lastListChanged = True
-            break
+	print ""
+        for migrationTime in config.KNOWN_NEST_MIGRATIONS:
+	    print "logged time then migration time"
+	    print extractedTime
+	    print migrationTime
+            if extractedTime > migrationTime:                
+                keyForDict = migrationTime
+            else:
+                break
 
-    if lastListChanged > 0:
-        listOfAllTimesScanned.append(currentList) 
-	currentList[60] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(currentMigrationTime))
+	print "using for migration time"
+	print keyForDict
+
+        strConverted = str(keyForDict)
+	listOfAllMigrations[strConverted][minuteVal] = listOfAllMigrations[strConverted][minuteVal] + 1
+        if listOfAllMigrations[strConverted][60] == 0:
+            listOfAllMigrations[strConverted][60] = 1
 
     print "Results:"
-    for listOfTimes in listOfAllTimesScanned:
-	print listOfTimes[60] + "-" * 30
-        for time, count in enumerate(listOfTimes):
-            if time < 60:
-                print "{time}: {count}".format(time=time,count=count)
+    for migrationTime in config.KNOWN_NEST_MIGRATIONS:
+        if listOfAllMigrations[str(migrationTime)][60] != 0:
+            print time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(migrationTime)) + " (" + str(migrationTime)  + ") " + "-" * 30
+            for minuteNumber, count in enumerate(listOfAllMigrations[str(migrationTime)]):
+                if minuteNumber < 60:
+                    print "{minuteNumber}: {count}".format(minuteNumber=minuteNumber,count=count)
